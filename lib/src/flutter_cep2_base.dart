@@ -2,8 +2,8 @@ import 'package:http/http.dart' as http;
 import 'package:xml2json/xml2json.dart' as xml;
 import 'dart:convert';
 
-class via_cep {
-  String _URLBase = 'https://viacep.com.br/ws/';
+class flutter_cep2 {
+  final String _URLBase = 'https://viacep.com.br/ws/';
 
   String _Body;
 
@@ -16,7 +16,7 @@ class via_cep {
   // variables return
   String _return01, _return02, _return03, _return04, _return05, _return06, _return07, _return08, _return09;
 
-  via_cep() {
+  flutter_cep2() {
     clear();
 
     _LastCEP = null;
@@ -45,16 +45,17 @@ class via_cep {
 
     _sensitive = sensitive.toString().toLowerCase().trim();
 
-    String _URLAccess = _URLBase+CEP+'/'+output;
+    // ignore: omit_local_variable_types
+    String _URLAccess = _URLBase + CEP + '/' + output;
 
-    var response = await http.get(_URLAccess);
+    var response = await http.get(Uri.parse(_URLAccess));
 
     _Response = response.statusCode;
     _Body = response.body;
 
-    if (_Response != 200)
+    if (_Response != 200) {
       clear();
-    else {
+    } else {
       if (output == 'json') {
         Map<String, dynamic> CEPdata = jsonDecode(_Body);
 
@@ -67,10 +68,11 @@ class via_cep {
         _return07 = CEPdata['unidade'];
         _return08 = CEPdata['ibge'];
         _return09 = CEPdata['gia'];
-
       } else if (output == 'xml') {
+        // ignore: omit_local_variable_types
         xml.Xml2Json myTransformer = xml.Xml2Json();
 
+        // ignore: omit_local_variable_types
         String content = _Body;
 
         myTransformer.parse(content);
@@ -88,7 +90,6 @@ class via_cep {
         _return07 = CEPdata['unidade'];
         _return08 = CEPdata['ibge'];
         _return09 = CEPdata['gia'];
-
       } else if (output == 'piped') {
         var text = _Body.split('|');
 
@@ -114,9 +115,7 @@ class via_cep {
         _return08 = text[7].split('=')[1];
         _return09 = text[8].split('=')[1];
       }
-
     }
-
   }
 
   String getBody() {
@@ -246,5 +245,4 @@ class via_cep {
       return _return09;
     }
   }
-
 }
