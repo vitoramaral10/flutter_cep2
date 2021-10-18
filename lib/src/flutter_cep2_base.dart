@@ -7,7 +7,7 @@ class flutter_cep2 {
 
   String? _Body;
   String? _LastCEP;
-  String? _sensitive;
+  String _sensitive = '';
   // variables return
   String? _return01, _return02, _return03, _return04, _return05, _return06, _return07, _return08, _return09;
 
@@ -17,7 +17,7 @@ class flutter_cep2 {
     clear();
 
     _LastCEP = null;
-    _Body = null;
+    _Body = 'json';
     _Response = null;
   }
 
@@ -32,7 +32,7 @@ class flutter_cep2 {
     _return08 = null;
     _return09 = null;
 
-    _sensitive = null;
+    _sensitive = '';
   }
 
   Future searchCEP(String CEP, output, sensitive) async {
@@ -130,6 +130,7 @@ class flutter_cep2 {
   }
 
   String? getLogradouro() {
+    // ignore: unnecessary_null_comparison
     if (_sensitive != null) {
       if (_sensitive == 'lower') {
         return _return02!.toLowerCase();
