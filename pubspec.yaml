@@ -1,13 +1,13 @@
 name: flutter_cep2
 description: Uma biblioteca para consulta de CEP para desenvolvedores Dart
   (Console, Web e Flutter).
-version: 1.0.6
+version: 0.0.1
 homepage: https://viacep.com.br/
 repository: https://github.com/vitoramaral10/flutter_cep2
 issue_tracker: https://github.com/vitoramaral10/flutter_cep2/issues
 
 environment:
-  sdk: '>=2.1.0 <3.0.0'
+  sdk: '>=2.12.0 <3.0.0'
 
 dependencies:
   http: ^0.13.4

@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/via_cep.iml" filepath="$PROJECT_DIR$/.idea/via_cep.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/flutter_cep2.iml" filepath="$PROJECT_DIR$/.idea/flutter_cep2.iml" />
     </modules>
   </component>
 </project>

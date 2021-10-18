@@ -5,24 +5,19 @@ import 'dart:convert';
 class flutter_cep2 {
   final String _URLBase = 'https://viacep.com.br/ws/';
 
-  String _Body;
-
-  int _Response;
-
-  String _LastCEP;
-
-  String _sensitive;
-
+  String? _Body;
+  String? _LastCEP;
+  String? _sensitive;
   // variables return
-  String _return01, _return02, _return03, _return04, _return05, _return06, _return07, _return08, _return09;
+  String? _return01, _return02, _return03, _return04, _return05, _return06, _return07, _return08, _return09;
+
+  int? _Response;
 
   flutter_cep2() {
     clear();
 
     _LastCEP = null;
-
     _Body = null;
-
     _Response = null;
   }
 
@@ -57,7 +52,7 @@ class flutter_cep2 {
       clear();
     } else {
       if (output == 'json') {
-        Map<String, dynamic> CEPdata = jsonDecode(_Body);
+        Map<String, dynamic> CEPdata = jsonDecode(_Body!);
 
         _return01 = CEPdata['cep'];
         _return02 = CEPdata['logradouro'];
@@ -73,9 +68,9 @@ class flutter_cep2 {
         xml.Xml2Json myTransformer = xml.Xml2Json();
 
         // ignore: omit_local_variable_types
-        String content = _Body;
+        String? content = _Body;
 
-        myTransformer.parse(content);
+        myTransformer.parse(content!);
 
         content = myTransformer.toParker();
 
@@ -91,7 +86,7 @@ class flutter_cep2 {
         _return08 = CEPdata['ibge'];
         _return09 = CEPdata['gia'];
       } else if (output == 'piped') {
-        var text = _Body.split('|');
+        var text = _Body!.split('|');
 
         _return01 = text[0].split(':')[1];
         _return02 = text[1].split(':')[1];
@@ -103,7 +98,7 @@ class flutter_cep2 {
         _return08 = text[7].split(':')[1];
         _return09 = text[8].split(':')[1];
       } else if (output == 'querty') {
-        var text = _Body.replaceAll('+', ' ').split('&');
+        var text = _Body!.replaceAll('+', ' ').split('&');
 
         _return01 = text[0].split('=')[1];
         _return02 = text[1].split('=')[1];
@@ -118,28 +113,28 @@ class flutter_cep2 {
     }
   }
 
-  String getBody() {
+  String? getBody() {
     return _Body;
   }
 
-  int getResponse() {
+  int? getResponse() {
     return _Response;
   }
 
-  String getLastCEP() {
+  String? getLastCEP() {
     return _LastCEP;
   }
 
-  String getCEP() {
+  String? getCEP() {
     return _return01;
   }
 
-  String getLogradouro() {
+  String? getLogradouro() {
     if (_sensitive != null) {
       if (_sensitive == 'lower') {
-        return _return02.toLowerCase();
+        return _return02!.toLowerCase();
       } else if (_sensitive == 'upper') {
-        return _return02.toUpperCase();
+        return _return02!.toUpperCase();
       } else {
         return _return02;
       }
@@ -148,12 +143,12 @@ class flutter_cep2 {
     }
   }
 
-  String getComplemento() {
+  String? getComplemento() {
     if (_sensitive != null) {
       if (_sensitive == 'lower') {
-        return _return03.toLowerCase();
+        return _return03!.toLowerCase();
       } else if (_sensitive == 'upper') {
-        return _return03.toUpperCase();
+        return _return03!.toUpperCase();
       } else {
         return _return03;
       }
@@ -162,12 +157,12 @@ class flutter_cep2 {
     }
   }
 
-  String getBairro() {
+  String? getBairro() {
     if (_sensitive != null) {
       if (_sensitive == 'lower') {
-        return _return04.toLowerCase();
+        return _return04!.toLowerCase();
       } else if (_sensitive == 'upper') {
-        return _return04.toUpperCase();
+        return _return04!.toUpperCase();
       } else {
         return _return04;
       }
@@ -176,12 +171,12 @@ class flutter_cep2 {
     }
   }
 
-  String getLocalidade() {
+  String? getLocalidade() {
     if (_sensitive != null) {
       if (_sensitive == 'lower') {
-        return _return05.toLowerCase();
+        return _return05!.toLowerCase();
       } else if (_sensitive == 'upper') {
-        return _return05.toUpperCase();
+        return _return05!.toUpperCase();
       } else {
         return _return05;
       }
@@ -190,12 +185,12 @@ class flutter_cep2 {
     }
   }
 
-  String getUF() {
+  String? getUF() {
     if (_sensitive != null) {
       if (_sensitive == 'lower') {
-        return _return06.toLowerCase();
+        return _return06!.toLowerCase();
       } else if (_sensitive == 'upper') {
-        return _return06.toUpperCase();
+        return _return06!.toUpperCase();
       } else {
         return _return06;
       }
@@ -204,12 +199,12 @@ class flutter_cep2 {
     }
   }
 
-  String getUnidade() {
+  String? getUnidade() {
     if (_sensitive != null) {
       if (_sensitive == 'lower') {
-        return _return07.toLowerCase();
+        return _return07!.toLowerCase();
       } else if (_sensitive == 'upper') {
-        return _return07.toUpperCase();
+        return _return07!.toUpperCase();
       } else {
         return _return07;
       }
@@ -218,12 +213,12 @@ class flutter_cep2 {
     }
   }
 
-  String getIBGE() {
+  String? getIBGE() {
     if (_sensitive != null) {
       if (_sensitive == 'lower') {
-        return _return08.toLowerCase();
+        return _return08!.toLowerCase();
       } else if (_sensitive == 'upper') {
-        return _return08.toUpperCase();
+        return _return08!.toUpperCase();
       } else {
         return _return08;
       }
@@ -232,12 +227,12 @@ class flutter_cep2 {
     }
   }
 
-  String getGIA() {
+  String? getGIA() {
     if (_sensitive != null) {
       if (_sensitive == 'lower') {
-        return _return09.toLowerCase();
+        return _return09!.toLowerCase();
       } else if (_sensitive == 'upper') {
-        return _return09.toUpperCase();
+        return _return09!.toUpperCase();
       } else {
         return _return09;
       }
