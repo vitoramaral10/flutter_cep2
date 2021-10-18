@@ -5,10 +5,10 @@ Package para integração com API ViaCEP (https://www.viacep.com.br). Se você e
 Um simples exemplo de uso:
 
 ```dart
-import 'package:via_cep/via_cep.dart';
+import 'package:flutter_cep2/flutter_cep2.dart';
 
 main() async {
-  var CEP = new via_cep();
+  var CEP = new flutter_cep2();
   
   var result = await CEP.searchCEP('12512170', 'json', '');
   
@@ -75,4 +75,4 @@ Para conhecer melhor o funcionamento acesse o site de origem da API (https://www
 
 Por favor para requisições de funcionalidades e bugs [issue tracker][tracker].
 
-[tracker]: https://github.com/mateuspenha/via_cep/issues
+[tracker]: https://github.com/vitoramaral10/flutter_cep2/issues
