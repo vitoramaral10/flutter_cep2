@@ -7,68 +7,45 @@ Um simples exemplo de uso:
 ```dart
 import 'package:flutter_cep2/flutter_cep2.dart';
 
-main() async {
-  var CEP = new flutter_cep2();
-  
-  var result = await CEP.searchCEP('12512170', 'json', '');
-  
-  // Sucesso
-  if (CEP.getResponse() == 200) { 
-     print('CEP: '+CEP.getCEP());
-     print('Logradouro: '+CEP.getLogradouro());
-     print('Complemento: '+CEP.getComplemento());
-     print('Bairro: '+CEP.getBairro());
-     print('Localidade: '+CEP.getLocalidade());
-     print('UF: '+CEP.getUF());
-     print('Unidade: '+CEP.getUnidade());
-     print('IBGE '+CEP.getIBGE());
-     print('GIA: '+CEP.getGIA());
-  // Falha
-  } else {
-    print('Código de Retorno: '+CEP.getResponse().toString());
-    print('Erro: '+CEP.getBody());
+void main() async {
+  var CEP = flutter_cep2();
+
+  try {
+    var result = await CEP.search('12512170');
+    print('CEP: ' + result.cep);
+    print('Logradouro: ' + result.logradouro);
+    print('Complemento: ' + result.complemento!);
+    print('Bairro: ' + result.bairro);
+    print('Localidade: ' + result.localidade);
+    print('UF: ' + result.uf);
+    print('Unidade: ' + result.unidade!);
+    print('IBGE ' + result.ibge);
+    print('GIA: ' + result.gia!);
+    print('DDD: ' + result.ddd!);
+    print('SIAF: ' + result.siaf!);
+  } catch (e) {
+    print(e);
   }
 }
 ```
 
 ## Recursos
 
-searchCEP - Método que realiza a consulta do CEP.
+search - Método que realiza a consulta do CEP.
 
-    Parâmetros: searchCEP(String CEP, output, sensitive)
-        Srting CEP = CEP (somente números, sem caracteres especiais e com 8 digitos)
+    Parâmetros: search(String cep, {String output})
+        String CEP = cep (somente números, sem caracteres especiais e com 8 digitos)
         
-        String output = Tipo de saída de dados, para retorno por meio de get() é indiferente ao usuário, porém para retorno do Body haverá diferenciação (recomenda-se sempre usar json).
+        String output = Tipo de saída de dados, para retorno por meio de get() é indiferente ao usuário, porém para retorno do Body haverá diferenciação (padrão json).
             Opções: json
                     xml
-                    piped
-                    querty
+                    piped (Não implementado)
+                    querty (Não implementado)
                     
-        String sensitive = Tipo de saída dos dados, normal, lowercase ou upppercase.
-            Opções: '' (em branco) ou null
-                    lower
-                    uper
-                    
-             Qualquer formato texto informado não reconhecido será inerpretad como branco ou nulo.
+            Qualquer formato texto informado não reconhecido irá gerar uma exceção.
 
-gets
+O retorno é a class CEP.
 
-    getBody(); // Retorna na integralidade a resposta da API.
-    getResponse(); // Retorna o código da consulta a API (Padrão 200 para sucesso).
-    
-    Quando houver sucesso (código 200) os métodos abaixo trazem retorno, do contrário retornam null;
-    
-    getCEP(); // Recupera o CEP (formatado). 
-    getLogradouro(); // Recupera o Lograouro (Ex.: Rua... Avenida, Etc.).
-    getComplemento(); // Recupera o Complemento.
-    getBairro(); // Recupera o Bairro.
-    getLocalidade(); // Recupera a Cidade do CEP.
-    getUF(); // Recupera o Estado (sigla) do CEP.
-    getUnidade(); // Recupera a Unidade do CEP. 
-    getIBGE(); // Recupera o Código de Município IBGE do CEP.
-    getGIA(); // Recupera o Código GIA do CEP.
-    
-    
 Para conhecer melhor o funcionamento acesse o site de origem da API (https://www.viacep.com.br)
 
 ## Funcionalidades e Bugs

@@ -9,10 +9,7 @@ class flutter_cep2 {
   Future<CEP> search(
     String cep, {
     String output = 'json',
-    String sensitive = '',
   }) async {
-    sensitive = sensitive.toString().toLowerCase().trim();
-
     // ignore: omit_local_variable_types
     String _URLAccess = _URLBase + cep + '/' + output;
 
