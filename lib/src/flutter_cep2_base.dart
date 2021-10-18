@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
-import 'package:xml2json/xml2json.dart' as xml;
+import 'package:xml2json/xml2json.dart';
 
 class flutter_cep2 {
   final String _URLBase = 'https://viacep.com.br/ws/';
@@ -20,30 +20,40 @@ class flutter_cep2 {
 
     var statusCode = response.statusCode;
     var body = response.body;
-
+    print(body);
     if (statusCode != 200) {
       throw Exception('Error connection');
     } else {
       switch (output) {
         case 'json':
-          return CEP.fromJson(jsonDecode(body));
-        case 'xml':
-          // ignore: omit_local_variable_types
-          xml.Xml2Json myTransformer = xml.Xml2Json();
+          Map<String, dynamic> cepDecoded = jsonDecode(body);
 
-          // ignore: omit_local_variable_types
+          if (cepDecoded['erro'] == true) {
+            throw Exception('Invalid number CEP');
+          } else {
+            return CEP.fromJson(cepDecoded);
+          }
+        case 'xml':
+          var myTransformer = Xml2Json();
+
           String? content = body;
 
           myTransformer.parse(content);
 
           content = myTransformer.toParker();
 
-          return CEP.fromJson(jsonDecode(content)['xmlcep']);
+          Map<String, dynamic> cepDecoded = jsonDecode(content)['xmlcep'];
+
+          if (cepDecoded['erro'] == 'true') {
+            throw Exception('Invalid number CEP');
+          } else {
+            return CEP.fromJson(jsonDecode(content)['xmlcep']);
+          }
         case 'piped':
-          var text = body.split('|');
+          //var text = body.split('|');
           throw Exception('Not Implemented');
         case 'querty':
-          var text = body.replaceAll('+', ' ').split('&');
+          //var text = body.replaceAll('+', ' ').split('&');
           throw Exception('Not Implemented');
         default:
           throw Exception('Not Implemented');
@@ -53,15 +63,17 @@ class flutter_cep2 {
 }
 
 class CEP {
-  final String? cep;
-  final String? logradouro;
+  final String cep;
+  final String logradouro;
   final String? complemento;
-  final String? bairro;
-  final String? localidade;
-  final String? uf;
+  final String bairro;
+  final String localidade;
+  final String uf;
   final String? unidade;
-  final String? ibge;
+  final String ibge;
   final String? gia;
+  final String? ddd;
+  final String? siaf;
 
   CEP(
     this.cep,
@@ -73,6 +85,8 @@ class CEP {
     this.unidade,
     this.ibge,
     this.gia,
+    this.ddd,
+    this.siaf,
   );
 
   CEP.fromJson(Map<String, dynamic> json)
@@ -84,7 +98,9 @@ class CEP {
         uf = json['uf'],
         unidade = json['unidade'],
         ibge = json['ibge'],
-        gia = json['gia'];
+        gia = json['gia'],
+        ddd = json['ddd'],
+        siaf = json['siaf'];
 
   Map<String, dynamic> toJson() => {
         'cep': cep,
@@ -96,5 +112,7 @@ class CEP {
         'unidade': unidade,
         'ibge': ibge,
         'gia': gia,
+        'ddd': ddd,
+        'siaf': siaf,
       };
 }
