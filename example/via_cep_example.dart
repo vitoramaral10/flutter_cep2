@@ -5,14 +5,14 @@ void main() async {
 
   try {
     var result = await CEP.search('12512170');
-    print('CEP: ' + result.cep);
-    print('Logradouro: ' + result.logradouro);
+    print('CEP: ' + result.cep!);
+    print('Logradouro: ' + result.logradouro!);
     print('Complemento: ' + result.complemento!);
-    print('Bairro: ' + result.bairro);
-    print('Localidade: ' + result.localidade);
-    print('UF: ' + result.uf);
-    print('Unidade: ' + result.unidade);
-    print('IBGE ' + result.ibge);
+    print('Bairro: ' + result.bairro!);
+    print('Localidade: ' + result.localidade!);
+    print('UF: ' + result.uf!);
+    print('Unidade: ' + result.unidade!);
+    print('IBGE ' + result.ibge!);
     print('GIA: ' + result.gia!);
   } catch (e) {
     print(e);
