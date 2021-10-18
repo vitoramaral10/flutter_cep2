@@ -1,13 +1,14 @@
+import 'dart:convert';
+
 import 'package:http/http.dart' as http;
 import 'package:xml2json/xml2json.dart' as xml;
-import 'dart:convert';
 
 class flutter_cep2 {
   final String _URLBase = 'https://viacep.com.br/ws/';
 
   String? _Body;
   String? _LastCEP;
-  String _sensitive = '';
+  String? _sensitive;
   // variables return
   String? _return01, _return02, _return03, _return04, _return05, _return06, _return07, _return08, _return09;
 
@@ -17,7 +18,7 @@ class flutter_cep2 {
     clear();
 
     _LastCEP = null;
-    _Body = 'json';
+    _Body = null;
     _Response = null;
   }
 
@@ -32,10 +33,14 @@ class flutter_cep2 {
     _return08 = null;
     _return09 = null;
 
-    _sensitive = '';
+    _sensitive = null;
   }
 
-  Future searchCEP(String CEP, output, sensitive) async {
+  Future searchCEP(
+    String CEP, {
+    String output = 'json',
+    String sensitive = '',
+  }) async {
     _LastCEP = CEP;
 
     _sensitive = sensitive.toString().toLowerCase().trim();
