@@ -55,13 +55,13 @@ class flutter_cep2 {
 class CEP {
   final String cep;
   final String logradouro;
-  final String complemento;
+  final String? complemento;
   final String bairro;
   final String localidade;
   final String uf;
   final String unidade;
   final String ibge;
-  final String gia;
+  final String? gia;
 
   CEP(
     this.cep,
