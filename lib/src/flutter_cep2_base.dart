@@ -6,244 +6,95 @@ import 'package:xml2json/xml2json.dart' as xml;
 class flutter_cep2 {
   final String _URLBase = 'https://viacep.com.br/ws/';
 
-  String? _Body;
-  String? _LastCEP;
-  String? _sensitive;
-  // variables return
-  String? _return01, _return02, _return03, _return04, _return05, _return06, _return07, _return08, _return09;
-
-  int? _Response;
-
-  flutter_cep2() {
-    clear();
-
-    _LastCEP = null;
-    _Body = null;
-    _Response = null;
-  }
-
-  void clear() {
-    _return01 = null;
-    _return02 = null;
-    _return03 = null;
-    _return04 = null;
-    _return05 = null;
-    _return06 = null;
-    _return07 = null;
-    _return08 = null;
-    _return09 = null;
-
-    _sensitive = null;
-  }
-
-  Future searchCEP(
-    String CEP, {
+  Future<CEP> search(
+    String cep, {
     String output = 'json',
     String sensitive = '',
   }) async {
-    _LastCEP = CEP;
-
-    _sensitive = sensitive.toString().toLowerCase().trim();
+    sensitive = sensitive.toString().toLowerCase().trim();
 
     // ignore: omit_local_variable_types
-    String _URLAccess = _URLBase + CEP + '/' + output;
+    String _URLAccess = _URLBase + cep + '/' + output;
 
     var response = await http.get(Uri.parse(_URLAccess));
 
-    _Response = response.statusCode;
-    _Body = response.body;
+    var statusCode = response.statusCode;
+    var body = response.body;
 
-    if (_Response != 200) {
-      clear();
+    if (statusCode != 200) {
+      throw Exception('Error connection');
     } else {
-      if (output == 'json') {
-        Map<String, dynamic> CEPdata = jsonDecode(_Body!);
+      switch (output) {
+        case 'json':
+          return CEP.fromJson(jsonDecode(body));
+        case 'xml':
+          // ignore: omit_local_variable_types
+          xml.Xml2Json myTransformer = xml.Xml2Json();
 
-        _return01 = CEPdata['cep'];
-        _return02 = CEPdata['logradouro'];
-        _return03 = CEPdata['complemento'];
-        _return04 = CEPdata['bairro'];
-        _return05 = CEPdata['localidade'];
-        _return06 = CEPdata['uf'];
-        _return07 = CEPdata['unidade'];
-        _return08 = CEPdata['ibge'];
-        _return09 = CEPdata['gia'];
-      } else if (output == 'xml') {
-        // ignore: omit_local_variable_types
-        xml.Xml2Json myTransformer = xml.Xml2Json();
+          // ignore: omit_local_variable_types
+          String? content = body;
 
-        // ignore: omit_local_variable_types
-        String? content = _Body;
+          myTransformer.parse(content);
 
-        myTransformer.parse(content!);
+          content = myTransformer.toParker();
 
-        content = myTransformer.toParker();
-
-        Map<String, dynamic> CEPdata = jsonDecode(content)['xmlcep'];
-
-        _return01 = CEPdata['cep'];
-        _return02 = CEPdata['logradouro'];
-        _return03 = CEPdata['complemento'];
-        _return04 = CEPdata['bairro'];
-        _return05 = CEPdata['localidade'];
-        _return06 = CEPdata['uf'];
-        _return07 = CEPdata['unidade'];
-        _return08 = CEPdata['ibge'];
-        _return09 = CEPdata['gia'];
-      } else if (output == 'piped') {
-        var text = _Body!.split('|');
-
-        _return01 = text[0].split(':')[1];
-        _return02 = text[1].split(':')[1];
-        _return03 = text[2].split(':')[1];
-        _return04 = text[3].split(':')[1];
-        _return05 = text[4].split(':')[1];
-        _return06 = text[5].split(':')[1];
-        _return07 = text[6].split(':')[1];
-        _return08 = text[7].split(':')[1];
-        _return09 = text[8].split(':')[1];
-      } else if (output == 'querty') {
-        var text = _Body!.replaceAll('+', ' ').split('&');
-
-        _return01 = text[0].split('=')[1];
-        _return02 = text[1].split('=')[1];
-        _return03 = text[2].split('=')[1];
-        _return04 = text[3].split('=')[1];
-        _return05 = text[4].split('=')[1];
-        _return06 = text[5].split('=')[1];
-        _return07 = text[6].split('=')[1];
-        _return08 = text[7].split('=')[1];
-        _return09 = text[8].split('=')[1];
+          return CEP.fromJson(jsonDecode(content)['xmlcep']);
+        case 'piped':
+          var text = body.split('|');
+          throw Exception('Not Implemented');
+        case 'querty':
+          var text = body.replaceAll('+', ' ').split('&');
+          throw Exception('Not Implemented');
+        default:
+          throw Exception('Not Implemented');
       }
     }
   }
+}
 
-  String? getBody() {
-    return _Body;
-  }
+class CEP {
+  final String cep;
+  final String logradouro;
+  final String complemento;
+  final String bairro;
+  final String localidade;
+  final String uf;
+  final String unidade;
+  final String ibge;
+  final String gia;
 
-  int? getResponse() {
-    return _Response;
-  }
+  CEP(
+    this.cep,
+    this.logradouro,
+    this.complemento,
+    this.bairro,
+    this.localidade,
+    this.uf,
+    this.unidade,
+    this.ibge,
+    this.gia,
+  );
 
-  String? getLastCEP() {
-    return _LastCEP;
-  }
+  CEP.fromJson(Map<String, dynamic> json)
+      : cep = json['cep'],
+        logradouro = json['logradouro'],
+        complemento = json['complemento'],
+        bairro = json['bairro'],
+        localidade = json['localidade'],
+        uf = json['uf'],
+        unidade = json['unidade'],
+        ibge = json['ibge'],
+        gia = json['gia'];
 
-  String? getCEP() {
-    return _return01;
-  }
-
-  String? getLogradouro() {
-    // ignore: unnecessary_null_comparison
-    if (_sensitive != null) {
-      if (_sensitive == 'lower') {
-        return _return02!.toLowerCase();
-      } else if (_sensitive == 'upper') {
-        return _return02!.toUpperCase();
-      } else {
-        return _return02;
-      }
-    } else {
-      return _return02;
-    }
-  }
-
-  String? getComplemento() {
-    if (_sensitive != null) {
-      if (_sensitive == 'lower') {
-        return _return03!.toLowerCase();
-      } else if (_sensitive == 'upper') {
-        return _return03!.toUpperCase();
-      } else {
-        return _return03;
-      }
-    } else {
-      return _return03;
-    }
-  }
-
-  String? getBairro() {
-    if (_sensitive != null) {
-      if (_sensitive == 'lower') {
-        return _return04!.toLowerCase();
-      } else if (_sensitive == 'upper') {
-        return _return04!.toUpperCase();
-      } else {
-        return _return04;
-      }
-    } else {
-      return _return04;
-    }
-  }
-
-  String? getLocalidade() {
-    if (_sensitive != null) {
-      if (_sensitive == 'lower') {
-        return _return05!.toLowerCase();
-      } else if (_sensitive == 'upper') {
-        return _return05!.toUpperCase();
-      } else {
-        return _return05;
-      }
-    } else {
-      return _return05;
-    }
-  }
-
-  String? getUF() {
-    if (_sensitive != null) {
-      if (_sensitive == 'lower') {
-        return _return06!.toLowerCase();
-      } else if (_sensitive == 'upper') {
-        return _return06!.toUpperCase();
-      } else {
-        return _return06;
-      }
-    } else {
-      return _return06;
-    }
-  }
-
-  String? getUnidade() {
-    if (_sensitive != null) {
-      if (_sensitive == 'lower') {
-        return _return07!.toLowerCase();
-      } else if (_sensitive == 'upper') {
-        return _return07!.toUpperCase();
-      } else {
-        return _return07;
-      }
-    } else {
-      return _return07;
-    }
-  }
-
-  String? getIBGE() {
-    if (_sensitive != null) {
-      if (_sensitive == 'lower') {
-        return _return08!.toLowerCase();
-      } else if (_sensitive == 'upper') {
-        return _return08!.toUpperCase();
-      } else {
-        return _return08;
-      }
-    } else {
-      return _return08;
-    }
-  }
-
-  String? getGIA() {
-    if (_sensitive != null) {
-      if (_sensitive == 'lower') {
-        return _return09!.toLowerCase();
-      } else if (_sensitive == 'upper') {
-        return _return09!.toUpperCase();
-      } else {
-        return _return09;
-      }
-    } else {
-      return _return09;
-    }
-  }
+  Map<String, dynamic> toJson() => {
+        'cep': cep,
+        'logradouro': logradouro,
+        'complemento': complemento,
+        'bairro': bairro,
+        'localidade': localidade,
+        'uf': uf,
+        'unidade': unidade,
+        'ibge': ibge,
+        'gia': gia,
+      };
 }
