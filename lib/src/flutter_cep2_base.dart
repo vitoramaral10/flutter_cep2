@@ -17,7 +17,7 @@ class flutter_cep2 {
 
     var statusCode = response.statusCode;
     var body = response.body;
-    print(body);
+
     if (statusCode != 200) {
       throw Exception('Error connection');
     } else {
