@@ -1,3 +1,6 @@
+## v0.0.12
+
+- Implementação do CI/CD
 ## v0.0.11
 
 - Remoção de print
