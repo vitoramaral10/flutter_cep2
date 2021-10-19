@@ -1,3 +1,7 @@
+## v0.0.9
+
+- Melhoria no Score
+
 ## v0.0.8
 
 - Melhoria no README.md
