@@ -1,3 +1,11 @@
+## v0.0.11
+
+- Remoção de print
+
+## v0.0.10
+
+- Melhoria no Score
+
 ## v0.0.9
 
 - Melhoria no Score
