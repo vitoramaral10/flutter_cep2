@@ -14,4 +14,4 @@ jobs:
       ## Use the follow lines in you flutter github workflows. Put it after '- uses: actions/checkout@v2'
       - uses: subosito/flutter-action@master
       - run: flutter pub publish --dry-run
-      - run: flutter pub publish -y
+      - run: flutter pub publish -f
