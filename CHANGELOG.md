@@ -1,3 +1,6 @@
+## v0.0.13
+
+- Update xml2json v5.3.2
 ## v0.0.12
 
 - Implementação do CI/CD
