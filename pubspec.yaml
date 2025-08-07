@@ -5,7 +5,8 @@ homepage: https://github.com/vitoramaral10/flutter_cep2
 repository: https://github.com/vitoramaral10/flutter_cep2
 issue_tracker: https://github.com/vitoramaral10/flutter_cep2/issues
 documentation: https://github.com/vitoramaral10/flutter_cep2#readme
-funding: https://github.com/sponsors/vitoramaral10
+funding: 
+  - https://github.com/sponsors/vitoramaral10
 
 environment:
   sdk: '>=2.17.0 <4.0.0'
