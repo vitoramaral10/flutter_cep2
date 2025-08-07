@@ -1,25 +1,85 @@
-## v0.0.13
+# Changelog
 
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [1.0.0] - 2025-01-07
+
+### ✨ Added
+- Complete rewrite with modern Dart practices and null safety
+- Comprehensive error handling with custom `CepException`
+- New `FlutterCep2` class with proper naming conventions (PascalCase)
+- Support for dependency injection with custom HTTP client
+- `dispose()` method for proper resource cleanup
+- Enhanced API with enum for output formats (`CepOutputFormat`)
+- Full documentation with dartdoc comments
+- Comprehensive test suite with 100% coverage
+- Support for various ZIP code formats (with/without formatting)
+- Immutable `Cep` model with proper `equals` and `hashCode`
+- Platform support declarations for all platforms
+- Topics and metadata in pubspec.yaml
+
+### 🔧 Changed
+- Updated minimum Dart SDK version to 2.17.0
+- Migrated from `pedantic` to `lints` package for better code quality
+- Updated all dependencies to latest versions
+- Improved error messages and exception handling
+- Better input validation for ZIP codes
+- Enhanced code organization and structure
+
+### 🚨 Breaking Changes
+- Renamed main class from `flutter_cep2` to `FlutterCep2` (PascalCase)
+- Renamed model class from `CEP` to `Cep` (PascalCase)  
+- Changed output parameter from `String` to `CepOutputFormat` enum
+- Updated method signatures and return types
+- Removed support for 'piped' and 'querty' formats (never implemented)
+
+### 📖 Documentation
+- Completely rewritten README with comprehensive examples
+- Added API reference documentation
+- Included Flutter widget example
+- Added troubleshooting and contribution guidelines
+- Enhanced library documentation
+
+### 🧪 Testing
+- Added comprehensive test suite with mock HTTP client
+- Tests for all error scenarios and edge cases
+- Tests for different input/output formats
+- Continuous integration improvements
+
+## [0.0.13] - Previous Release
+
+### Changed
 - Update xml2json v5.3.2
-## v0.0.12
 
+## [0.0.12] - Previous Release
+
+### Added
 - Implementação do CI/CD
-## v0.0.11
 
+## [0.0.11] - Previous Release
+
+### Changed
 - Remoção de print
 
-## v0.0.10
+## [0.0.10] - Previous Release
 
+### Changed
 - Melhoria no Score
 
-## v0.0.9
+## [0.0.9] - Previous Release
 
+### Changed
 - Melhoria no Score
 
-## v0.0.8
+## [0.0.8] - Previous Release
 
+### Changed
 - Melhoria no README.md
 
-## v0.0.7
+## [0.0.7] - Previous Release
 
-- Versão inicial, desenvolvido por Vitor Melo.
+### Added
+- Versão inicial, desenvolvido por Vitor Melo
