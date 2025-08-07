@@ -1,6 +1,6 @@
 name: flutter_cep2
 description: A Brazilian ZIP code (CEP) lookup library for Dart and Flutter applications. Supports multiple output formats including JSON and XML.
-version: 1.0.0
+version: 1.0.1
 homepage: https://github.com/vitoramaral10/flutter_cep2
 repository: https://github.com/vitoramaral10/flutter_cep2
 issue_tracker: https://github.com/vitoramaral10/flutter_cep2/issues
