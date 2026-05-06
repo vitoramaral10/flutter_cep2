@@ -15,29 +15,29 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup Dart
-        uses: dart-lang/setup-dart@v1
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
         with:
-          sdk: stable
+          channel: stable
 
       - name: Install dependencies
-        run: dart pub get
+        run: flutter pub get
 
       - name: Format check
-        run: dart format --output=none --set-exit-if-changed .
+        run: flutter format --output=none --set-exit-if-changed .
         continue-on-error: true
 
       - name: Analyze code
-        run: dart analyze --fatal-infos
+        run: flutter analyze --fatal-infos
         continue-on-error: true
 
       - name: Run tests with coverage
-        run: dart test --coverage=coverage
+        run: flutter test --coverage=coverage
 
       - name: Format coverage
         run: |
-          dart pub global activate coverage
-          dart pub global run coverage:format_coverage --lcov --in=coverage --out=coverage/lcov.info
+          flutter pub global activate coverage
+          flutter pub global run coverage:format_coverage --lcov --in=coverage --out=coverage/lcov.info
 
       - name: Run SonarCloud scan
         uses: SonarSource/sonarcloud-github-action@master
