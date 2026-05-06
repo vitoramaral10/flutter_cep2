@@ -1,6 +1,0 @@
-{
-  "hooks": {
-    "pre-commit": "dart format --output=none --set-exit-if-changed .",
-    "commit-msg": "bash .husky/commit-msg $1"
-  }
-}

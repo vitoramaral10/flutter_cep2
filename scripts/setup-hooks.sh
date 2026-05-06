@@ -7,6 +7,12 @@ set -e
 
 echo "📦 Setting up Git hooks..."
 
+# Check if in git repository
+if [ ! -d .git ]; then
+    echo "❌ Error: Not in a Git repository"
+    exit 1
+fi
+
 # Make hook files executable
 chmod +x .husky/pre-commit
 chmod +x .husky/commit-msg
@@ -18,6 +24,7 @@ mkdir -p .git/hooks
 cp .husky/pre-commit .git/hooks/pre-commit
 cp .husky/commit-msg .git/hooks/commit-msg
 
+# Make hooks executable
 chmod +x .git/hooks/pre-commit
 chmod +x .git/hooks/commit-msg
 
@@ -27,4 +34,6 @@ echo "Installed hooks:"
 echo "  • pre-commit: Format Dart code before committing"
 echo "  • commit-msg: Validate commit message format"
 echo ""
-echo "Read COMMIT_GUIDELINES.md for more information"
+echo "📖 Read COMMIT_GUIDELINES.md for more information"
+echo ""
+echo "Next time you commit, your message will be validated!"
