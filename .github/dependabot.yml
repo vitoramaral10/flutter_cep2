@@ -1,6 +1,10 @@
 version: 2
+
+# Configure Dependabot for automatic dependency updates
+# https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-dependency-updates
+
 updates:
-  # Enable version updates for pub packages
+  # Main package dependencies
   - package-ecosystem: "pub"
     directory: "/"
     schedule:
@@ -10,10 +14,71 @@ updates:
     open-pull-requests-limit: 5
     reviewers:
       - "vitoramaral10"
+    assignees:
+      - "vitoramaral10"
     labels:
       - "dependencies"
       - "automated"
+      - "pub"
     commit-message:
       prefix: "chore"
       prefix-development: "chore"
       include: "scope"
+    # Enable auto-merge for patch updates (low risk)
+    auto-merge: true
+    # Allow merge when dependabot PR is approved
+    pull-request-branch-name:
+      separator: "/"
+    # Rebase and merge strategy
+    rebase-strategy: "auto"
+    # Only update if there are security vulnerabilities
+    allow:
+      - dependency-type: "direct"
+      - dependency-type: "indirect"
+
+  # Example app dependencies
+  - package-ecosystem: "pub"
+    directory: "/example"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "04:00"
+    open-pull-requests-limit: 3
+    reviewers:
+      - "vitoramaral10"
+    assignees:
+      - "vitoramaral10"
+    labels:
+      - "dependencies"
+      - "automated"
+      - "example"
+    commit-message:
+      prefix: "chore(example)"
+      prefix-development: "chore(example)"
+      include: "scope"
+    auto-merge: true
+    rebase-strategy: "auto"
+
+  # GitHub Actions updates
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "05:00"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "vitoramaral10"
+    assignees:
+      - "vitoramaral10"
+    labels:
+      - "ci"
+      - "automated"
+      - "github-actions"
+    commit-message:
+      prefix: "ci"
+      prefix-development: "ci"
+      include: "scope"
+    # GitHub Actions are safer to auto-merge
+    auto-merge: true
+    rebase-strategy: "auto"
