@@ -102,14 +102,24 @@ jobs:
           tail -n +8 CHANGELOG.md >> "$temp"
           mv "$temp" CHANGELOG.md
 
-      - name: Commit and push version bump
+      - name: Commit version bump
         if: steps.version.outputs.new_version != steps.version.outputs.current_version
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add pubspec.yaml CHANGELOG.md
           git commit -m "chore: bump version to ${{ steps.version.outputs.new_version }}"
-          git push
+
+      - name: Create pull request for version bump
+        if: steps.version.outputs.new_version != steps.version.outputs.current_version
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore: bump version to ${{ steps.version.outputs.new_version }}"
+          title: "chore: bump version to ${{ steps.version.outputs.new_version }}"
+          body: "Automated version bump for release"
+          branch: "release/v${{ steps.version.outputs.new_version }}"
+          delete-branch: true
 
       - name: Create tag
         if: steps.version.outputs.new_version != steps.version.outputs.current_version
