@@ -15,6 +15,8 @@ jobs:
   generate-notes:
     runs-on: ubuntu-latest
     name: Generate Release Notes
+    env:
+      INPUT_VERSION: ${{ inputs.version }}
 
     steps:
       - uses: actions/checkout@v4
@@ -23,18 +25,17 @@ jobs:
 
       - name: Validate version format
         run: |
-          VERSION="${{ inputs.version }}"
-          if ! [[ $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "❌ Invalid version format: $VERSION"
+          if ! echo "$INPUT_VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "❌ Invalid version format: $INPUT_VERSION"
             echo "Expected format: X.Y.Z (semantic versioning)"
             exit 1
           fi
-          echo "✅ Version format is valid: $VERSION"
+          echo "✅ Version format is valid: $INPUT_VERSION"
 
       - name: Generate release notes
         run: |
           chmod +x scripts/generate-release-notes.sh
-          bash scripts/generate-release-notes.sh "${{ inputs.version }}"
+          bash scripts/generate-release-notes.sh "$INPUT_VERSION"
 
       - name: Upload release notes artifact
         uses: actions/upload-artifact@v4
@@ -44,15 +45,17 @@ jobs:
           retention-days: 30
 
       - name: Create summary
+        env:
+          RELEASE_NOTES_FILE: RELEASE_NOTES_${{ env.INPUT_VERSION }}.md
         run: |
           echo "## 📝 Release Notes Generated" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Version:** ${{ inputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** $INPUT_VERSION" >> $GITHUB_STEP_SUMMARY
           echo "**Date:** $(date +%Y-%m-%d)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Release notes have been generated and are available as artifacts." >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Preview" >> $GITHUB_STEP_SUMMARY
           echo '```markdown' >> $GITHUB_STEP_SUMMARY
-          cat "RELEASE_NOTES_${{ inputs.version }}.md" >> $GITHUB_STEP_SUMMARY
+          cat "$RELEASE_NOTES_FILE" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
