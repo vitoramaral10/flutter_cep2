@@ -8,7 +8,7 @@ set -e
 echo "📦 Setting up Git hooks..."
 
 # Check if in git repository
-if [ ! -d .git ]; then
+if [[ ! -d .git ]]; then
     echo "❌ Error: Not in a Git repository"
     exit 1
 fi
