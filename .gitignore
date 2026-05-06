@@ -1,9 +1,125 @@
-# Files and directories created by pub
+# ===========================
+# Dart / Pub Package Manager
+# ===========================
 .dart_tool/
 .packages
+.pub-cache/
+.pub/
 
-# Conventional directory for build outputs
-build/
+# ===========================
+# Flutter
+# ===========================
+/build/
+/android/
+/ios/
+/macos/
+/windows/
+/linux/
+/web/
+pubspec.lock
+.flutter-plugins
+.flutter-plugins-dependencies
 
-# Directory created by dartdoc
+# ===========================
+# Documentation
+# ===========================
 doc/api/
+doc/generated_docs/
+
+# ===========================
+# IDE and Editor
+# ===========================
+# VSCode
+.vscode/
+*.code-workspace
+
+# IntelliJ / Android Studio
+.idea/
+*.iml
+*.iws
+*.ipr
+.gradle/
+.android/
+local.properties
+
+# vim
+.vim/
+*~
+*.swp
+*.swo
+
+# Emacs
+*~
+\#*\#
+.\#*
+
+# nano
+.nano_history
+
+# Sublime Text
+*.sublime-workspace
+*.sublime-project
+
+# ===========================
+# OS Specific
+# ===========================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+*.swp
+*.swo
+*~
+.Spotlight-V100
+.Trashes
+.VolumeIcon.icns
+.env.local
+.env.*.local
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+.directory
+
+# ===========================
+# Temporary Files
+# ===========================
+*.tmp
+*.temp
+*.log
+*.swp
+*.swo
+*~
+
+# ===========================
+# Coverage and Testing
+# ===========================
+coverage/
+.coverage
+.nyc_output/
+
+# ===========================
+# Environment Files
+# ===========================
+.env
+.env.local
+.env.*.local
+.env.production.local
+
+# ===========================
+# Generated Files
+# ===========================
+*.g.dart
+*.config.dart
+*.gm.dart
+
+# ===========================
+# Miscellaneous
+# ===========================
+*.DS_Store
+*.db
+.firebase/
+.firebaserc
