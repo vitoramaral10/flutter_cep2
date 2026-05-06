@@ -357,9 +357,44 @@ Contributions are welcome! Help improve this CEP lookup library:
 2. Create a feature branch
 3. Make your changes
 4. Write tests for new features
-5. Submit a Pull Request
+5. Submit a Pull Request with appropriate labels (`feature`, `fix`, `docs`, etc.)
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
+### Setup Development Environment
+
+```bash
+# Clone repository
+git clone https://github.com/vitoramaral10/flutter_cep2.git
+cd flutter_cep2
+
+# Install dependencies
+dart pub get
+
+# Setup Git hooks (validates commit messages)
+bash scripts/setup-hooks.sh
+
+# Run tests
+dart test
+
+# Format code
+dart format .
+```
+
+### Commit Message Format
+
+This project uses **Conventional Commits** to maintain a clean history and enable automated versioning.
+
+```
+type(scope?): subject
+```
+
+**Types**: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `chore`, `ci`, `revert`
+
+**Examples**:
+- `feat(api): add new CEP search method`
+- `fix: correct validation logic`
+- `docs: update README examples`
+
+See [COMMIT_GUIDELINES.md](COMMIT_GUIDELINES.md) for detailed guidelines.
 
 ## 📝 Changelog
 

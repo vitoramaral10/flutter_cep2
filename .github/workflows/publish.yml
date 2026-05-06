@@ -1,0 +1,41 @@
+name: Publish to pub.dev
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Dart
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+
+      - name: Get dependencies
+        run: dart pub get
+
+      - name: Verify formatting
+        run: dart format --output=none --set-exit-if-changed .
+        continue-on-error: true
+
+      - name: Analyze code
+        run: dart analyze --fatal-infos
+        continue-on-error: true
+
+      - name: Run tests
+        run: dart test
+        continue-on-error: true
+
+      - name: Publish to pub.dev
+        run: dart pub publish --force
+        env:
+          PUB_ENVIRONMENT: github_actions

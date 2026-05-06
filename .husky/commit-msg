@@ -1,0 +1,43 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+# Conventional Commits validation
+# Format: type(scope?): subject
+#
+# Valid types: feat, fix, docs, style, refactor, perf, test, chore, ci, revert
+# Example: feat(auth): add login functionality
+# Example: fix: correct typo in README
+
+commit_msg=$(cat "$1")
+
+# Pattern for Conventional Commits
+pattern="^(feat|fix|docs|style|refactor|perf|test|chore|ci|revert)(\(.+\))?: .{1,}"
+
+if ! echo "$commit_msg" | grep -qE "$pattern"; then
+    echo ""
+    echo "❌ Commit message does not follow Conventional Commits format!"
+    echo ""
+    echo "Format: type(scope?): subject"
+    echo ""
+    echo "Valid types:"
+    echo "  • feat:     A new feature"
+    echo "  • fix:      A bug fix"
+    echo "  • docs:     Documentation only changes"
+    echo "  • style:    Changes that don't affect code (formatting, whitespace)"
+    echo "  • refactor: Code change that neither fixes a bug nor adds a feature"
+    echo "  • perf:     Code change that improves performance"
+    echo "  • test:     Adding missing tests or correcting existing tests"
+    echo "  • chore:    Changes to build process, dependencies, tooling"
+    echo "  • ci:       Changes to CI/CD configuration files"
+    echo "  • revert:   Reverts a previous commit"
+    echo ""
+    echo "Examples:"
+    echo "  • feat(auth): add login functionality"
+    echo "  • fix: correct typo in README"
+    echo "  • docs: update installation instructions"
+    echo "  • ci: add GitHub Actions workflow"
+    echo ""
+    exit 1
+fi
+
+exit 0
