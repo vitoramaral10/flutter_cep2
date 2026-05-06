@@ -1,13 +1,33 @@
 # flutter_cep2 - Brazilian CEP Lookup Library
 
+<div align="center">
+
 [![pub package](https://img.shields.io/pub/v/flutter_cep2.svg)](https://pub.dev/packages/flutter_cep2)
 [![pub points](https://img.shields.io/pub/points/flutter_cep2)](https://pub.dev/packages/flutter_cep2/score)
 [![license](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/vitoramaral10/flutter_cep2/blob/main/LICENSE)
 [![GitHub Stars](https://img.shields.io/github/stars/vitoramaral10/flutter_cep2)](https://github.com/vitoramaral10/flutter_cep2)
 
+[![Tests](https://github.com/vitoramaral10/flutter_cep2/actions/workflows/test.yml/badge.svg)](https://github.com/vitoramaral10/flutter_cep2/actions/workflows/test.yml)
+[![Code Quality](https://img.shields.io/badge/sonarcloud-checked-lightgrey?logo=sonarcloud)](https://sonarcloud.io/project/overview?id=vitoramaral10_flutter_cep2)
+[![Dart](https://img.shields.io/badge/Dart-3.0%2B-blue?logo=dart)](https://dart.dev)
+[![Flutter](https://img.shields.io/badge/Flutter-3.0%2B-blue?logo=flutter)](https://flutter.dev)
+
+</div>
+
 The most complete and reliable Brazilian ZIP code (CEP) lookup library for Dart and Flutter applications. Instantly search postal codes and get detailed address information with full support for formatting, error handling, and multiple output formats.
 
 **Perfect for:** Address forms, delivery apps, e-commerce checkout, address validation, location services, and any Flutter/Dart application that needs Brazilian postal code lookups (busca CEP, endereço Brasil, código postal).
+
+## 📊 Project Status
+
+| Metric | Status |
+|--------|--------|
+| **Version** | [![Pub Version](https://img.shields.io/pub/v/flutter_cep2.svg?style=flat-square)](https://pub.dev/packages/flutter_cep2) |
+| **Build** | [![Tests](https://github.com/vitoramaral10/flutter_cep2/actions/workflows/test.yml/badge.svg?style=flat-square)](https://github.com/vitoramaral10/flutter_cep2/actions) |
+| **Coverage** | [![codecov](https://codecov.io/gh/vitoramaral10/flutter_cep2/branch/main/graph/badge.svg)](https://codecov.io/gh/vitoramaral10/flutter_cep2) |
+| **Code Quality** | [![Quality Score](https://img.shields.io/badge/pub_points-120%2F130-green?style=flat-square)](https://pub.dev/packages/flutter_cep2/score) |
+| **Dart** | [![Dart 3.0+](https://img.shields.io/badge/Dart-3.0%2B-blue?style=flat-square&logo=dart)](https://dart.dev) |
+| **License** | [![MIT License](https://img.shields.io/badge/license-MIT-green?style=flat-square)](LICENSE) |
 
 ## ⭐ Features
 
@@ -416,12 +436,30 @@ Have questions or found a bug?
 - **Report Issues:** [GitHub Issues](https://github.com/vitoramaral10/flutter_cep2/issues)
 - **Start a Discussion:** [GitHub Discussions](https://github.com/vitoramaral10/flutter_cep2/discussions)
 
-## 🔗 Related Resources
+## 🔗 Useful Resources & Links
 
-- **Flutter:** [flutter.dev](https://flutter.dev)
-- **Dart:** [dart.dev](https://dart.dev)
-- **Pub.dev Package:** [flutter_cep2](https://pub.dev/packages/flutter_cep2)
-- **GitHub Repository:** [vitoramaral10/flutter_cep2](https://github.com/vitoramaral10/flutter_cep2)
+### Official Documentation
+- 📚 [README](README.md) - Package overview and quick start
+- 📖 [CONTRIBUTING.md](CONTRIBUTING.md) - How to contribute to the project
+- 🛡️ [SECURITY.md](SECURITY.md) - Security policy and responsible disclosure
+- 🗺️ [ROADMAP.md](ROADMAP.md) - Future plans and feature roadmap
+- 👥 [MAINTAINERS.md](MAINTAINERS.md) - Project governance and maintainers
+
+### Community & Discussion
+- 💬 [GitHub Discussions](https://github.com/vitoramaral10/flutter_cep2/discussions) - Ask questions and share ideas
+- 🐛 [Report Issues](https://github.com/vitoramaral10/flutter_cep2/issues) - Found a bug? Create an issue
+- ⭐ [GitHub Repository](https://github.com/vitoramaral10/flutter_cep2) - Star us on GitHub!
+
+### Tools & APIs
+- 🏠 [Pub.dev Package](https://pub.dev/packages/flutter_cep2) - View on Pub.dev
+- 📡 [ViaCEP API](https://viacep.com.br/) - Our trusted data provider
+- 🚀 [Flutter Documentation](https://flutter.dev/docs) - Flutter official docs
+- 🎯 [Dart Documentation](https://dart.dev/guides) - Dart official docs
+
+### Development
+- 🔍 [GitHub Actions](https://github.com/vitoramaral10/flutter_cep2/actions) - CI/CD status
+- 📊 [Code Quality](https://sonarcloud.io/project/overview?id=vitoramaral10_flutter_cep2) - SonarCloud analysis
+- 📈 [Coverage Report](https://codecov.io/gh/vitoramaral10/flutter_cep2) - Code coverage details
 
 ---
 
