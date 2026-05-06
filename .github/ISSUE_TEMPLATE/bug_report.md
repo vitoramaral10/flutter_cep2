@@ -8,7 +8,7 @@ assignees: ''
 
 ## 📝 Descrição do Bug
 
-<!-- Descreva claramente qual é o bug -->
+<!-- Descreva claramente e concisamente qual é o bug. Uma ou duas frases são suficientes. -->
 
 ## 🔍 Como Reproduzir
 
@@ -24,9 +24,11 @@ Steps para reproduzir o comportamento:
 
 ## 📺 Comportamento Atual
 
-<!-- Descreva o que realmente acontece -->
+<!-- Descreva o que realmente acontece. Seja específico! -->
 
 ## 💻 Código Mínimo para Reproduzir
+
+<!-- OBRIGATÓRIO: Sem este código, a issue não pode ser investigada -->
 
 ```dart
 // Adicione um exemplo mínimo que reproduz o bug
@@ -47,21 +49,30 @@ try {
 - **OS**: <!-- Windows, macOS, Linux, iOS, Android, Web -->
 - **Device**: <!-- Ex: Samsung Galaxy S21, iPhone 13, etc -->
 
-## 📎 Logs
+## 📎 Stack Trace / Logs
 
-<!-- Adicione logs relevantes aqui. Use ```console ``` para formatar -->
+<!-- Adicione o stack trace completo ou logs relevantes. Use ```console ``` para formatar -->
 
 ```console
-[Cole os logs aqui]
+[Cole o stack trace ou logs aqui]
 ```
+
+## 📸 Screenshots
+
+<!-- Se aplicável, adicione screenshots do erro -->
 
 ## 📌 Checklist
 
-- [ ] Verifiquei se este bug já foi reportado
+- [ ] Verifiquei se este bug já foi reportado procurando nas issues
 - [ ] Estou usando a versão mais recente da biblioteca
-- [ ] Este é um bug reproduzível
-- [ ] Incluí um código mínimo que reproduz o bug
+- [ ] Este é um bug consistentemente reproduzível
+- [ ] Incluí um código mínimo que reproduz o bug (OBRIGATÓRIO)
+- [ ] Incluí informações completas do meu ambiente
 
-## 📝 Informação Adicional
+## 📝 Contexto Adicional
 
-<!-- Adicione qualquer informação adicional que possa ser útil -->
+<!-- Adicione qualquer outra informação que possa ser útil, como:
+- Quando começou o problema (ex: após atualizar para versão X)
+- Se o bug afeta apenas certos cenários
+- Possível causa raiz (se souber)
+-->
