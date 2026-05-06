@@ -28,7 +28,7 @@ jobs:
         run: flutter analyze --fatal-infos
 
       - name: Run tests
-        run: flutter test --coverage=coverage
+        run: flutter test --coverage
 
       - name: Format coverage
         run: |
