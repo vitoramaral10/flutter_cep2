@@ -36,9 +36,40 @@ jobs:
           flutter pub global activate coverage
           flutter pub global run coverage:format_coverage --lcov --in=coverage --out=coverage/lcov.info
 
+      - name: Check coverage threshold
+        if: github.event_name == 'pull_request'
+        run: |
+          # Install lcov to parse coverage data
+          sudo apt-get update && sudo apt-get install -y lcov
+
+          # Extract coverage percentage
+          coverage_percent=$(lcov --summary coverage/lcov.info 2>/dev/null | grep "lines" | awk '{print $2}' | sed 's/%//')
+
+          echo "Code Coverage: ${coverage_percent}%"
+
+          if (( $(echo "$coverage_percent < 80" | bc -l) )); then
+            echo "❌ Coverage is below 80% threshold (${coverage_percent}%)"
+            exit 1
+          fi
+          echo "✅ Coverage meets 80% threshold (${coverage_percent}%)"
+
+      - name: Analyze with dart_code_metrics
+        run: |
+          flutter pub global activate dart_code_metrics
+          flutter pub global run dart_code_metrics:metrics analyze lib --set-exit-on-violation-level=warning
+        continue-on-error: true
+
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
           files: ./coverage/lcov.info
           fail_ci_if_error: false
         continue-on-error: true
+
+      - name: Upload coverage report as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/lcov.info
+          retention-days: 30

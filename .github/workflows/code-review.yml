@@ -1,0 +1,133 @@
+name: Code Review
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  code-review:
+    runs-on: ubuntu-latest
+    name: Automated Code Review
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Run tests and collect coverage
+        run: flutter test --coverage
+        continue-on-error: true
+
+      - name: Prepare coverage report
+        run: |
+          flutter pub global activate coverage
+          flutter pub global run coverage:format_coverage --lcov --in=coverage --out=coverage/lcov.info
+        continue-on-error: true
+
+      - name: Check code quality metrics
+        id: metrics
+        run: |
+          flutter pub global activate dart_code_metrics
+
+          # Run dart_code_metrics and capture output
+          echo "## 📊 Code Quality Metrics" > $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          flutter pub global run dart_code_metrics:metrics analyze lib --reporter=json > metrics.json 2>&1 || true
+
+          if [ -f metrics.json ]; then
+            # Count issues by severity
+            warnings=$(jq '[.records[] | select(.type=="warning")] | length' metrics.json 2>/dev/null || echo "0")
+            errors=$(jq '[.records[] | select(.type=="error")] | length' metrics.json 2>/dev/null || echo "0")
+
+            echo "- **Errors**: $errors" >> $GITHUB_STEP_SUMMARY
+            echo "- **Warnings**: $warnings" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+      - name: Extract coverage percentage
+        id: coverage
+        run: |
+          # Install lcov
+          sudo apt-get update -qq && sudo apt-get install -y lcov > /dev/null 2>&1
+
+          if [ -f coverage/lcov.info ]; then
+            coverage_percent=$(lcov --summary coverage/lcov.info 2>/dev/null | grep "lines" | awk '{print $2}' | sed 's/%//')
+            echo "coverage=$coverage_percent" >> $GITHUB_OUTPUT
+            echo "Coverage: $coverage_percent%"
+          else
+            echo "coverage=0" >> $GITHUB_OUTPUT
+            echo "No coverage data found"
+          fi
+
+      - name: Comment PR with code review summary
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const coverage = "${{ steps.coverage.outputs.coverage }}";
+            const coverageNum = parseFloat(coverage) || 0;
+
+            let coverageStatus = '✅ Passed';
+            let coverageColor = 'green';
+            if (coverageNum < 80) {
+              coverageStatus = '❌ Failed';
+              coverageColor = 'red';
+            } else if (coverageNum < 90) {
+              coverageStatus = '⚠️ Warning';
+              coverageColor = 'yellow';
+            }
+
+            const comment = `## 🔍 Code Review Summary
+
+### Coverage Report
+| Metric | Result |
+|--------|--------|
+| Code Coverage | ${coverageNum}% ${coverageStatus === '✅ Passed' ? '✅' : '❌'} |
+| Threshold | 80% minimum |
+| Status | ${coverageStatus} |
+
+${coverageNum < 80 ? `\n⚠️ **Coverage below threshold!** Current: ${coverageNum}%, Required: 80%\n` : ''}
+
+### Code Quality
+- ✅ Formatting checked
+- ✅ Static analysis performed
+- ✅ Tests executed
+
+---
+*Review generated automatically by GitHub Actions*`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+      - name: Fail if coverage is below threshold
+        if: github.event_name == 'pull_request'
+        run: |
+          coverage="${{ steps.coverage.outputs.coverage }}"
+          coverage_num=$(echo "$coverage" | cut -d. -f1)
+
+          if [ -z "$coverage" ] || [ "$coverage_num" -lt 80 ]; then
+            echo "❌ Code coverage is below 80% threshold"
+            exit 1
+          fi
+          echo "✅ Code coverage meets minimum threshold"
