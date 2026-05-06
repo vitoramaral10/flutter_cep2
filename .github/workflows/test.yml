@@ -11,10 +11,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
 
       - name: Set up Flutter
-        uses: subosito/flutter-action@v2
+        uses: subosito/flutter-action@44ac965b6bfcfe275be6ff193ab13cebe50b9c2d
         with:
           channel: stable
           cache: true
@@ -37,7 +37,7 @@ jobs:
           flutter pub global run coverage:format_coverage --lcov --in=coverage --out=coverage/lcov.info
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@6d798873bc1d537cb7f86b3d4aa1ff5c5505c3b8
         with:
           files: ./coverage/lcov.info
           fail_ci_if_error: false

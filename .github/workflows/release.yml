@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
         with:
           fetch-depth: 0
 
@@ -116,7 +116,7 @@ jobs:
 
       - name: Create GitHub Release
         if: steps.version.outputs.new_version != steps.version.outputs.current_version
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365d573fcc735cb
         with:
           tag_name: v${{ steps.version.outputs.new_version }}
           name: Release ${{ steps.version.outputs.new_version }}
