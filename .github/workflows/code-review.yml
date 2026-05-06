@@ -80,38 +80,32 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const fs = require('fs');
             const coverage = "${{ steps.coverage.outputs.coverage }}";
             const coverageNum = parseFloat(coverage) || 0;
 
-            let coverageStatus = '✅ Passed';
-            let coverageColor = 'green';
+            let coverageStatus = 'Passed';
             if (coverageNum < 80) {
-              coverageStatus = '❌ Failed';
-              coverageColor = 'red';
+              coverageStatus = 'Failed';
             } else if (coverageNum < 90) {
-              coverageStatus = '⚠️ Warning';
-              coverageColor = 'yellow';
+              coverageStatus = 'Warning';
             }
 
-            const comment = `## 🔍 Code Review Summary
+            let comment = '## 🔍 Code Review Summary\n\n';
+            comment += '### Coverage Report\n';
+            comment += `- **Code Coverage**: ${coverageNum}%\n`;
+            comment += '- **Threshold**: 80% minimum\n';
+            comment += `- **Status**: ${coverageStatus}\n\n`;
 
-### Coverage Report
-| Metric | Result |
-|--------|--------|
-| Code Coverage | ${coverageNum}% ${coverageStatus === '✅ Passed' ? '✅' : '❌'} |
-| Threshold | 80% minimum |
-| Status | ${coverageStatus} |
+            if (coverageNum < 80) {
+              comment += `⚠️ **Coverage below threshold!** Current: ${coverageNum}%, Required: 80%\n\n`;
+            }
 
-${coverageNum < 80 ? `\n⚠️ **Coverage below threshold!** Current: ${coverageNum}%, Required: 80%\n` : ''}
-
-### Code Quality
-- ✅ Formatting checked
-- ✅ Static analysis performed
-- ✅ Tests executed
-
----
-*Review generated automatically by GitHub Actions*`;
+            comment += '### Code Quality\n';
+            comment += '- ✅ Formatting checked\n';
+            comment += '- ✅ Static analysis performed\n';
+            comment += '- ✅ Tests executed\n\n';
+            comment += '---\n';
+            comment += '*Review generated automatically by GitHub Actions*';
 
             github.rest.issues.createComment({
               issue_number: context.issue.number,
