@@ -1,0 +1,138 @@
+name: Create Release and Tag
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  release:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get PR labels
+        id: pr_labels
+        run: |
+          labels="${{ join(github.event.pull_request.labels.*.name) }}"
+          echo "labels=$labels" >> $GITHUB_OUTPUT
+
+      - name: Determine version bump
+        id: version
+        run: |
+          # Get current version from pubspec.yaml
+          current_version=$(grep "^version:" pubspec.yaml | awk '{print $2}')
+          echo "current_version=$current_version" >> $GITHUB_OUTPUT
+
+          # Parse semantic version
+          IFS='.' read -r major minor patch <<< "$current_version"
+
+          # Determine bump type based on PR labels
+          labels="${{ steps.pr_labels.outputs.labels }}"
+
+          if [[ "$labels" == *"breaking"* ]]; then
+            major=$((major + 1))
+            minor=0
+            patch=0
+          elif [[ "$labels" == *"feature"* ]]; then
+            minor=$((minor + 1))
+            patch=0
+          elif [[ "$labels" == *"fix"* ]] || [[ "$labels" == *"docs"* ]]; then
+            patch=$((patch + 1))
+          else
+            # Default to patch bump
+            patch=$((patch + 1))
+          fi
+
+          new_version="$major.$minor.$patch"
+          echo "new_version=$new_version" >> $GITHUB_OUTPUT
+          echo "bump_type=patch" >> $GITHUB_OUTPUT
+
+          if [[ "$labels" == *"breaking"* ]]; then
+            echo "bump_type=major" >> $GITHUB_OUTPUT
+          elif [[ "$labels" == *"feature"* ]]; then
+            echo "bump_type=minor" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Update version in pubspec.yaml
+        if: steps.version.outputs.new_version != steps.version.outputs.current_version
+        run: |
+          sed -i "s/^version: .*/version: ${{ steps.version.outputs.new_version }}/g" pubspec.yaml
+
+      - name: Update CHANGELOG.md
+        if: steps.version.outputs.new_version != steps.version.outputs.current_version
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          NEW_VERSION: ${{ steps.version.outputs.new_version }}
+          BUMP_TYPE: ${{ steps.version.outputs.bump_type }}
+        run: |
+          # Create new changelog entry based on bump type
+          if [[ "$BUMP_TYPE" == "major" ]]; then
+            section="### 🚨 Breaking Changes"
+          elif [[ "$BUMP_TYPE" == "minor" ]]; then
+            section="### ✨ Added"
+          else
+            section="### 📖 Improved"
+          fi
+
+          # Create changelog entry
+          changelog_entry=$(cat <<EOF
+          ## [$NEW_VERSION] - $(date +%Y-%m-%d)
+
+          $section
+          - PR #$PR_NUMBER: $PR_TITLE
+
+          EOF
+          )
+
+          # Insert after the "All notable changes" header
+          temp=$(mktemp)
+          awk '/All notable changes/{p=1} p && NR==FNR{next} FNR==1{print FILENAME; exit}' CHANGELOG.md | head -7 > "$temp"
+          echo "" >> "$temp"
+          echo "$changelog_entry" >> "$temp"
+          tail -n +8 CHANGELOG.md >> "$temp"
+          mv "$temp" CHANGELOG.md
+
+      - name: Commit and push version bump
+        if: steps.version.outputs.new_version != steps.version.outputs.current_version
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add pubspec.yaml CHANGELOG.md
+          git commit -m "chore: bump version to ${{ steps.version.outputs.new_version }}"
+          git push
+
+      - name: Create tag
+        if: steps.version.outputs.new_version != steps.version.outputs.current_version
+        run: |
+          git tag -a "v${{ steps.version.outputs.new_version }}" -m "Release v${{ steps.version.outputs.new_version }}"
+          git push origin "v${{ steps.version.outputs.new_version }}"
+
+      - name: Create GitHub Release
+        if: steps.version.outputs.new_version != steps.version.outputs.current_version
+        uses: softprops/action-gh-release@v1
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          NEW_VERSION: ${{ steps.version.outputs.new_version }}
+          CURRENT_VERSION: ${{ steps.version.outputs.current_version }}
+          REPOSITORY: ${{ github.repository }}
+        with:
+          tag_name: v${{ steps.version.outputs.new_version }}
+          name: Release ${{ steps.version.outputs.new_version }}
+          body: |
+            ## What's Changed
+            * PR #${{ env.PR_NUMBER }}: ${{ env.PR_TITLE }}
+
+            **Full Changelog**: https://github.com/${{ env.REPOSITORY }}/compare/v${{ steps.version.outputs.current_version }}...v${{ steps.version.outputs.new_version }}
+          draft: false
+          prerelease: false

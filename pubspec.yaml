@@ -1,11 +1,11 @@
 name: flutter_cep2
-description: A Brazilian ZIP code (CEP) lookup library for Dart and Flutter applications. Supports multiple output formats including JSON and XML.
+description: Complete Brazilian ZIP code (CEP) lookup library for Dart and Flutter. Fast, reliable CEP search with JSON/XML output, full null safety, comprehensive error handling, and support for Android, iOS, Web, Windows, macOS, and Linux platforms. Built with ViaCEP API.
 version: 1.0.2
 homepage: https://github.com/vitoramaral10/flutter_cep2
 repository: https://github.com/vitoramaral10/flutter_cep2
 issue_tracker: https://github.com/vitoramaral10/flutter_cep2/issues
 documentation: https://github.com/vitoramaral10/flutter_cep2#readme
-funding: 
+funding:
   - https://github.com/sponsors/vitoramaral10
 
 environment:
@@ -26,6 +26,12 @@ topics:
   - address
   - postal-code
   - viacep
+  - braziladdress
+  - zipcode
+  - endereço
+  - correios
+  - flutter
+  - dart
 
 platforms:
   android:
