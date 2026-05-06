@@ -69,13 +69,16 @@ jobs:
 
       - name: Update CHANGELOG.md
         if: steps.version.outputs.new_version != steps.version.outputs.current_version
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          NEW_VERSION: ${{ steps.version.outputs.new_version }}
+          BUMP_TYPE: ${{ steps.version.outputs.bump_type }}
         run: |
           # Create new changelog entry based on bump type
-          bump_type="${{ steps.version.outputs.bump_type }}"
-
-          if [[ "$bump_type" == "major" ]]; then
+          if [[ "$BUMP_TYPE" == "major" ]]; then
             section="### 🚨 Breaking Changes"
-          elif [[ "$bump_type" == "minor" ]]; then
+          elif [[ "$BUMP_TYPE" == "minor" ]]; then
             section="### ✨ Added"
           else
             section="### 📖 Improved"
@@ -83,10 +86,10 @@ jobs:
 
           # Create changelog entry
           changelog_entry=$(cat <<EOF
-          ## [${{ steps.version.outputs.new_version }}] - $(date +%Y-%m-%d)
+          ## [$NEW_VERSION] - $(date +%Y-%m-%d)
 
           $section
-          - PR #${{ github.event.pull_request.number }}: ${{ github.event.pull_request.title }}
+          - PR #$PR_NUMBER: $PR_TITLE
 
           EOF
           )
@@ -116,14 +119,20 @@ jobs:
 
       - name: Create GitHub Release
         if: steps.version.outputs.new_version != steps.version.outputs.current_version
-        uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365d573fcc735cb
+        uses: softprops/action-gh-release@v1
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          NEW_VERSION: ${{ steps.version.outputs.new_version }}
+          CURRENT_VERSION: ${{ steps.version.outputs.current_version }}
+          REPOSITORY: ${{ github.repository }}
         with:
           tag_name: v${{ steps.version.outputs.new_version }}
           name: Release ${{ steps.version.outputs.new_version }}
           body: |
             ## What's Changed
-            * PR #${{ github.event.pull_request.number }}: ${{ github.event.pull_request.title }}
+            * PR #${{ env.PR_NUMBER }}: ${{ env.PR_TITLE }}
 
-            **Full Changelog**: https://github.com/${{ github.repository }}/compare/v${{ steps.version.outputs.current_version }}...v${{ steps.version.outputs.new_version }}
+            **Full Changelog**: https://github.com/${{ env.REPOSITORY }}/compare/v${{ steps.version.outputs.current_version }}...v${{ steps.version.outputs.new_version }}
           draft: false
           prerelease: false
