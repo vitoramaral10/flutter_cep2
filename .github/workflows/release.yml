@@ -13,6 +13,7 @@ jobs:
   release:
     if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
+    name: Release and Tag
 
     steps:
       - uses: actions/checkout@v4
@@ -24,6 +25,7 @@ jobs:
         run: |
           labels="${{ join(github.event.pull_request.labels.*.name) }}"
           echo "labels=$labels" >> $GITHUB_OUTPUT
+          echo "Labels detected: $labels" >> $GITHUB_STEP_SUMMARY
 
       - name: Determine version bump
         id: version
@@ -35,100 +37,177 @@ jobs:
           # Parse semantic version
           IFS='.' read -r major minor patch <<< "$current_version"
 
+          # Initialize variables
+          bump_type="patch"
+
           # Determine bump type based on PR labels
           labels="${{ steps.pr_labels.outputs.labels }}"
 
           if [[ "$labels" == *"breaking"* ]]; then
+            bump_type="major"
             major=$((major + 1))
             minor=0
             patch=0
           elif [[ "$labels" == *"feature"* ]]; then
+            bump_type="minor"
             minor=$((minor + 1))
             patch=0
           elif [[ "$labels" == *"fix"* ]] || [[ "$labels" == *"docs"* ]]; then
+            bump_type="patch"
             patch=$((patch + 1))
           else
-            # Default to patch bump
+            # Default to patch bump if no matching label
+            echo "⚠️ No version label found (breaking/feature/fix). Defaulting to patch bump." >> $GITHUB_STEP_SUMMARY
+            bump_type="patch"
             patch=$((patch + 1))
           fi
 
           new_version="$major.$minor.$patch"
           echo "new_version=$new_version" >> $GITHUB_OUTPUT
-          echo "bump_type=patch" >> $GITHUB_OUTPUT
+          echo "bump_type=$bump_type" >> $GITHUB_OUTPUT
 
-          if [[ "$labels" == *"breaking"* ]]; then
-            echo "bump_type=major" >> $GITHUB_OUTPUT
-          elif [[ "$labels" == *"feature"* ]]; then
-            echo "bump_type=minor" >> $GITHUB_OUTPUT
+          echo "Version Bump: $current_version → $new_version ($bump_type)" >> $GITHUB_STEP_SUMMARY
+
+      - name: Validate version change
+        id: validation
+        run: |
+          current="${{ steps.version.outputs.current_version }}"
+          new="${{ steps.version.outputs.new_version }}"
+
+          if [[ "$current" == "$new" ]]; then
+            echo "should_release=false" >> $GITHUB_OUTPUT
+            echo "❌ Version not changed: $current" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "should_release=true" >> $GITHUB_OUTPUT
+            echo "✅ Version will be bumped: $current → $new" >> $GITHUB_STEP_SUMMARY
           fi
 
       - name: Update version in pubspec.yaml
-        if: steps.version.outputs.new_version != steps.version.outputs.current_version
+        if: steps.validation.outputs.should_release == 'true'
         run: |
-          sed -i "s/^version: .*/version: ${{ steps.version.outputs.new_version }}/g" pubspec.yaml
+          current_version="${{ steps.version.outputs.current_version }}"
+          new_version="${{ steps.version.outputs.new_version }}"
+
+          # Use Python for cross-platform compatibility instead of sed
+          python3 << 'PYTHON_EOF'
+          import re
+
+          with open('pubspec.yaml', 'r') as f:
+              content = f.read()
+
+          # Replace version line
+          updated = re.sub(
+              r'^version:\s+.*$',
+              f'version: {new_version}',
+              content,
+              flags=re.MULTILINE
+          )
+
+          with open('pubspec.yaml', 'w') as f:
+              f.write(updated)
+
+          print(f"✅ Updated pubspec.yaml: {current_version} → {new_version}")
+          PYTHON_EOF
 
       - name: Update CHANGELOG.md
-        if: steps.version.outputs.new_version != steps.version.outputs.current_version
+        if: steps.validation.outputs.should_release == 'true'
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           NEW_VERSION: ${{ steps.version.outputs.new_version }}
           BUMP_TYPE: ${{ steps.version.outputs.bump_type }}
         run: |
-          # Create new changelog entry based on bump type
-          if [[ "$BUMP_TYPE" == "major" ]]; then
-            section="### 🚨 Breaking Changes"
-          elif [[ "$BUMP_TYPE" == "minor" ]]; then
-            section="### ✨ Added"
-          else
-            section="### 📖 Improved"
-          fi
+          python3 << 'PYTHON_EOF'
+          import os
+          from datetime import datetime
+
+          pr_title = os.environ['PR_TITLE']
+          pr_number = os.environ['PR_NUMBER']
+          new_version = os.environ['NEW_VERSION']
+          bump_type = os.environ['BUMP_TYPE']
+
+          # Determine section based on bump type
+          if bump_type == "major":
+              section = "### 🚨 Breaking Changes"
+          elif bump_type == "minor":
+              section = "### ✨ Added"
+          else:
+              section = "### 📖 Fixed"
 
           # Create changelog entry
-          changelog_entry=$(cat <<EOF
-          ## [$NEW_VERSION] - $(date +%Y-%m-%d)
+          date_str = datetime.now().strftime('%Y-%m-%d')
+          changelog_entry = f"## [{new_version}] - {date_str}\n\n{section}\n- PR #{pr_number}: {pr_title}\n\n"
 
-          $section
-          - PR #$PR_NUMBER: $PR_TITLE
+          # Read CHANGELOG.md
+          with open('CHANGELOG.md', 'r') as f:
+              lines = f.readlines()
 
-          EOF
-          )
+          # Find insertion point (after "All notable changes" section)
+          insert_index = 0
+          for i, line in enumerate(lines):
+              if 'All notable changes' in line:
+                  # Skip header lines
+                  insert_index = i + 2
+                  break
 
-          # Insert after the "All notable changes" header
-          temp=$(mktemp)
-          awk '/All notable changes/{p=1} p && NR==FNR{next} FNR==1{print FILENAME; exit}' CHANGELOG.md | head -7 > "$temp"
-          echo "" >> "$temp"
-          echo "$changelog_entry" >> "$temp"
-          tail -n +8 CHANGELOG.md >> "$temp"
-          mv "$temp" CHANGELOG.md
+          # Insert new entry
+          lines.insert(insert_index, changelog_entry)
+
+          # Write back
+          with open('CHANGELOG.md', 'w') as f:
+              f.writelines(lines)
+
+          print(f"✅ Updated CHANGELOG.md with version {new_version}")
+          PYTHON_EOF
+
+      - name: Verify changes
+        if: steps.validation.outputs.should_release == 'true'
+        run: |
+          echo "=== pubspec.yaml (first 10 lines) ===" >> $GITHUB_STEP_SUMMARY
+          head -10 pubspec.yaml >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "=== CHANGELOG.md (first 20 lines) ===" >> $GITHUB_STEP_SUMMARY
+          head -20 CHANGELOG.md >> $GITHUB_STEP_SUMMARY
 
       - name: Commit version bump
-        if: steps.version.outputs.new_version != steps.version.outputs.current_version
+        if: steps.validation.outputs.should_release == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add pubspec.yaml CHANGELOG.md
           git commit -m "chore: bump version to ${{ steps.version.outputs.new_version }}"
+          echo "✅ Committed version bump" >> $GITHUB_STEP_SUMMARY
 
       - name: Create pull request for version bump
-        if: steps.version.outputs.new_version != steps.version.outputs.current_version
+        if: steps.validation.outputs.should_release == 'true'
+        id: create_pr
         uses: peter-evans/create-pull-request@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "chore: bump version to ${{ steps.version.outputs.new_version }}"
           title: "chore: bump version to ${{ steps.version.outputs.new_version }}"
-          body: "Automated version bump for release"
+          body: |
+            Automated version bump triggered by PR #${{ github.event.pull_request.number }}
+
+            **Changes:**
+            - Version bumped from `${{ steps.version.outputs.current_version }}` to `${{ steps.version.outputs.new_version }}`
+            - CHANGELOG.md updated
+            - Bump type: `${{ steps.version.outputs.bump_type }}`
+
+            This PR will trigger the publish workflow upon merge.
           branch: "release/v${{ steps.version.outputs.new_version }}"
           delete-branch: true
 
       - name: Create tag
-        if: steps.version.outputs.new_version != steps.version.outputs.current_version
+        if: steps.validation.outputs.should_release == 'true'
         run: |
           git tag -a "v${{ steps.version.outputs.new_version }}" -m "Release v${{ steps.version.outputs.new_version }}"
           git push origin "v${{ steps.version.outputs.new_version }}"
+          echo "✅ Created and pushed tag: v${{ steps.version.outputs.new_version }}" >> $GITHUB_STEP_SUMMARY
 
       - name: Create GitHub Release
-        if: steps.version.outputs.new_version != steps.version.outputs.current_version
+        if: steps.validation.outputs.should_release == 'true'
         uses: softprops/action-gh-release@v1
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
@@ -143,6 +222,17 @@ jobs:
             ## What's Changed
             * PR #${{ env.PR_NUMBER }}: ${{ env.PR_TITLE }}
 
-            **Full Changelog**: https://github.com/${{ env.REPOSITORY }}/compare/v${{ steps.version.outputs.current_version }}...v${{ steps.version.outputs.new_version }}
+            **Full Changelog**: https://github.com/${{ env.REPOSITORY }}/compare/v${{ env.CURRENT_VERSION }}...v${{ env.NEW_VERSION }}
           draft: false
           prerelease: false
+
+      - name: Release Summary
+        if: always()
+        run: |
+          echo "## 🎉 Release Workflow Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Trigger PR:** #${{ github.event.pull_request.number }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Current Version:** ${{ steps.version.outputs.current_version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **New Version:** ${{ steps.version.outputs.new_version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Bump Type:** ${{ steps.version.outputs.bump_type }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Should Release:** ${{ steps.validation.outputs.should_release }}" >> $GITHUB_STEP_SUMMARY
