@@ -9,7 +9,7 @@ echo "📦 Setting up Git hooks..."
 
 # Check if in git repository
 if [[ ! -d .git ]]; then
-    echo "❌ Error: Not in a Git repository"
+    echo "❌ Error: Not in a Git repository" >&2
     exit 1
 fi
 
