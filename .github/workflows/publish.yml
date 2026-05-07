@@ -15,28 +15,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
+      - name: Set up Dart
+        uses: dart-lang/setup-dart@v1
         with:
-          channel: stable
-          cache: true
+          sdk: stable
 
       - name: Get dependencies
-        run: flutter pub get
+        run: dart pub get
 
       - name: Verify formatting
         run: dart format --output=none --set-exit-if-changed .
-        continue-on-error: true
 
       - name: Analyze code
         run: dart analyze --fatal-infos
-        continue-on-error: true
 
       - name: Run tests
-        run: flutter test
-        continue-on-error: true
+        run: dart test
 
       - name: Publish to pub.dev
-        run: flutter pub publish --force
+        run: dart pub publish --force
         env:
           PUB_ENVIRONMENT: github_actions

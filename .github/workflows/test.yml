@@ -13,14 +13,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
+      - name: Set up Dart
+        uses: dart-lang/setup-dart@v1
         with:
-          channel: stable
-          cache: true
+          sdk: stable
 
       - name: Get dependencies
-        run: flutter pub get
+        run: dart pub get
 
       - name: Check formatting
         run: dart format --output=none --set-exit-if-changed .
@@ -28,63 +27,37 @@ jobs:
       - name: Analyze code
         run: dart analyze --fatal-infos
 
-      - name: Run tests
-        run: flutter test --coverage
+      - name: Run tests with coverage
+        run: dart test --coverage=coverage
 
       - name: Format coverage
         run: |
-          flutter pub global activate coverage
-          flutter pub global run coverage:format_coverage --lcov --in=coverage --out=coverage/lcov.info
+          dart pub global activate coverage
+          dart pub global run coverage:format_coverage \
+            --lcov --in=coverage --out=coverage/lcov.info \
+            --report-on=lib
 
       - name: Check coverage threshold
         if: github.event_name == 'pull_request'
         run: |
-          # Install lcov to parse coverage data
-          sudo apt-get update -qq && sudo apt-get install -y lcov > /dev/null 2>&1
-
-          # Extract coverage percentage with fallback
-          coverage_percent=$(lcov --summary coverage/lcov.info 2>/dev/null | grep "lines" | awk '{print $2}' | sed 's/%//' || echo "0")
-
-          # Validate coverage_percent is not empty
-          if [ -z "$coverage_percent" ] || [ "$coverage_percent" = "" ]; then
-            echo "⚠️  Warning: Could not extract coverage percentage, using 0"
-            coverage_percent="0"
-          fi
-
-          echo "Code Coverage: ${coverage_percent}%"
-
-          # Convert to integer for comparison
+          sudo apt-get update -qq && sudo apt-get install -y lcov > /dev/null
+          coverage_percent=$(lcov --summary coverage/lcov.info 2>/dev/null \
+            | grep "lines" | awk '{print $2}' | sed 's/%//')
+          coverage_percent=${coverage_percent:-0}
           coverage_int=${coverage_percent%.*}
-
+          echo "Coverage: ${coverage_percent}%"
           if [ "$coverage_int" -lt 80 ]; then
-            echo "❌ Coverage is below 80% threshold (${coverage_percent}%)"
+            echo "::error::Coverage ${coverage_percent}% is below 80% threshold"
             exit 1
           fi
-          echo "✅ Coverage meets 80% threshold (${coverage_percent}%)"
-
-      - name: Analyze with dart_code_metrics
-        run: |
-          flutter pub global activate dart_code_metrics
-          flutter pub global run dart_code_metrics:metrics analyze lib --set-exit-on-violation-level=warning
-        continue-on-error: true
-
-      - name: Log coverage results
-        if: always()
-        run: |
-          echo "Coverage file exists:"
-          ls -lh coverage/lcov.info 2>/dev/null || echo "Coverage file not found"
-          echo ""
-          echo "Coverage file content (first 20 lines):"
-          head -20 coverage/lcov.info 2>/dev/null || echo "Could not read coverage file"
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         with:
           files: ./coverage/lcov.info
           fail_ci_if_error: false
-        continue-on-error: true
 
-      - name: Upload coverage report as artifact
+      - name: Upload coverage report
         if: always()
         uses: actions/upload-artifact@v4
         with:
