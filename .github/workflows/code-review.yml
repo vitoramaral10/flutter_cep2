@@ -19,109 +19,68 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
+      - name: Set up Dart
+        uses: dart-lang/setup-dart@v1
         with:
-          channel: stable
-          cache: true
+          sdk: stable
 
       - name: Get dependencies
-        run: flutter pub get
+        run: dart pub get
 
-      - name: Run tests and collect coverage
-        run: flutter test --coverage
+      - name: Run tests with coverage
+        run: dart test --coverage=coverage
         continue-on-error: true
 
-      - name: Prepare coverage report
+      - name: Format coverage
         run: |
-          flutter pub global activate coverage
-          flutter pub global run coverage:format_coverage --lcov --in=coverage --out=coverage/lcov.info
+          dart pub global activate coverage
+          dart pub global run coverage:format_coverage \
+            --lcov --in=coverage --out=coverage/lcov.info \
+            --report-on=lib
         continue-on-error: true
-
-      - name: Check code quality metrics
-        id: metrics
-        run: |
-          flutter pub global activate dart_code_metrics
-
-          # Run dart_code_metrics and capture output
-          echo "## 📊 Code Quality Metrics" > $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-
-          flutter pub global run dart_code_metrics:metrics analyze lib --reporter=json > metrics.json 2>&1 || true
-
-          if [ -f metrics.json ]; then
-            # Count issues by severity
-            warnings=$(jq '[.records[] | select(.type=="warning")] | length' metrics.json 2>/dev/null || echo "0")
-            errors=$(jq '[.records[] | select(.type=="error")] | length' metrics.json 2>/dev/null || echo "0")
-
-            echo "- **Errors**: $errors" >> $GITHUB_STEP_SUMMARY
-            echo "- **Warnings**: $warnings" >> $GITHUB_STEP_SUMMARY
-          fi
-          echo "" >> $GITHUB_STEP_SUMMARY
 
       - name: Extract coverage percentage
         id: coverage
         run: |
-          # Install lcov
-          sudo apt-get update -qq && sudo apt-get install -y lcov > /dev/null 2>&1
-
+          sudo apt-get update -qq && sudo apt-get install -y lcov > /dev/null
           if [ -f coverage/lcov.info ]; then
-            coverage_percent=$(lcov --summary coverage/lcov.info 2>/dev/null | grep "lines" | awk '{print $2}' | sed 's/%//')
-            echo "coverage=$coverage_percent" >> $GITHUB_OUTPUT
-            echo "Coverage: $coverage_percent%"
+            coverage_percent=$(lcov --summary coverage/lcov.info 2>/dev/null \
+              | grep "lines" | awk '{print $2}' | sed 's/%//')
+            coverage_percent=${coverage_percent:-0}
           else
-            echo "coverage=0" >> $GITHUB_OUTPUT
-            echo "No coverage data found"
+            coverage_percent=0
           fi
+          echo "coverage=$coverage_percent" >> $GITHUB_OUTPUT
+          echo "Coverage: ${coverage_percent}%"
 
-      - name: Comment PR with code review summary
-        if: github.event_name == 'pull_request'
+      - name: Comment PR with coverage summary
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const coverage = "${{ steps.coverage.outputs.coverage }}";
-            const coverageNum = parseFloat(coverage) || 0;
+            const coverage = parseFloat("${{ steps.coverage.outputs.coverage }}") || 0;
+            const status = coverage >= 90 ? '✅ Excellent'
+                         : coverage >= 80 ? '✅ Passed'
+                         : '❌ Below threshold';
 
-            let coverageStatus = 'Passed';
-            if (coverageNum < 80) {
-              coverageStatus = 'Failed';
-            } else if (coverageNum < 90) {
-              coverageStatus = 'Warning';
-            }
+            const body = [
+              '## Code Review Summary',
+              '',
+              `**Coverage:** ${coverage}% — ${status} (threshold: 80%)`,
+            ].join('\n');
 
-            let comment = '## 🔍 Code Review Summary\n\n';
-            comment += '### Coverage Report\n';
-            comment += `- **Code Coverage**: ${coverageNum}%\n`;
-            comment += '- **Threshold**: 80% minimum\n';
-            comment += `- **Status**: ${coverageStatus}\n\n`;
-
-            if (coverageNum < 80) {
-              comment += `⚠️ **Coverage below threshold!** Current: ${coverageNum}%, Required: 80%\n\n`;
-            }
-
-            comment += '### Code Quality\n';
-            comment += '- ✅ Formatting checked\n';
-            comment += '- ✅ Static analysis performed\n';
-            comment += '- ✅ Tests executed\n\n';
-            comment += '---\n';
-            comment += '*Review generated automatically by GitHub Actions*';
-
-            github.rest.issues.createComment({
+            await github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: comment
+              body,
             });
 
-      - name: Fail if coverage is below threshold
-        if: github.event_name == 'pull_request'
+      - name: Fail if coverage below threshold
         run: |
           coverage="${{ steps.coverage.outputs.coverage }}"
-          coverage_num=$(echo "$coverage" | cut -d. -f1)
-
-          if [ -z "$coverage" ] || [ "$coverage_num" -lt 80 ]; then
-            echo "❌ Code coverage is below 80% threshold"
+          coverage_int=${coverage%.*}
+          if [ "${coverage_int:-0}" -lt 80 ]; then
+            echo "::error::Coverage ${coverage}% is below 80% threshold"
             exit 1
           fi
-          echo "✅ Code coverage meets minimum threshold"
