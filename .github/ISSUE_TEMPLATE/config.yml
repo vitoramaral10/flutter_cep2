@@ -1,8 +1,5 @@
-blank_issues_enabled: false
+blank_issues_enabled: true
 contact_links:
-  - name: 📧 Discussão Geral
+  - name: Discussão geral
     url: https://github.com/vitoramaral10/flutter_cep2/discussions
-    about: Para perguntas, discussões e ideias gerais
-  - name: 💬 Comunidade Dart/Flutter
-    url: https://dart.dev/community
-    about: Para perguntas sobre Dart/Flutter em geral
+    about: Para perguntas, ideias e dúvidas de uso
