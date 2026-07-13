@@ -1,10 +1,9 @@
-# Changelog
+CHANGELOG.md
 
-All notable changes to this project will be documented in this file.
+## [1.0.3] - 2026-07-13
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
+### 📖 Improved
+- PR #14: chore(deps): bump meta from 1.18.3 to 1.19.0
 ## [1.0.2] - 2025-08-07
 
 ### 📖 Documentation
