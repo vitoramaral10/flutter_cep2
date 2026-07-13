@@ -1,0 +1,86 @@
+name: Code Review
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  code-review:
+    runs-on: ubuntu-latest
+    name: Automated Code Review
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Dart
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+
+      - name: Get dependencies
+        run: dart pub get
+
+      - name: Run tests with coverage
+        run: dart test --coverage=coverage
+        continue-on-error: true
+
+      - name: Format coverage
+        run: |
+          dart pub global activate coverage
+          dart pub global run coverage:format_coverage \
+            --lcov --in=coverage --out=coverage/lcov.info \
+            --report-on=lib
+        continue-on-error: true
+
+      - name: Extract coverage percentage
+        id: coverage
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y lcov > /dev/null
+          if [ -f coverage/lcov.info ]; then
+            coverage_percent=$(lcov --summary coverage/lcov.info 2>/dev/null \
+              | grep "lines" | awk '{print $2}' | sed 's/%//')
+            coverage_percent=${coverage_percent:-0}
+          else
+            coverage_percent=0
+          fi
+          echo "coverage=$coverage_percent" >> $GITHUB_OUTPUT
+          echo "Coverage: ${coverage_percent}%"
+
+      - name: Comment PR with coverage summary
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const coverage = parseFloat("${{ steps.coverage.outputs.coverage }}") || 0;
+            const status = coverage >= 90 ? '✅ Excellent'
+                         : coverage >= 80 ? '✅ Passed'
+                         : '❌ Below threshold';
+
+            const body = [
+              '## Code Review Summary',
+              '',
+              `**Coverage:** ${coverage}% — ${status} (threshold: 80%)`,
+            ].join('\n');
+
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body,
+            });
+
+      - name: Fail if coverage below threshold
+        run: |
+          coverage="${{ steps.coverage.outputs.coverage }}"
+          coverage_int=${coverage%.*}
+          if [ "${coverage_int:-0}" -lt 80 ]; then
+            echo "::error::Coverage ${coverage}% is below 80% threshold"
+            exit 1
+          fi

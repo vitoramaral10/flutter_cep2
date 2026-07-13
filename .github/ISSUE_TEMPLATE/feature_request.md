@@ -1,58 +1,22 @@
 ---
-name: ✨ Feature Request
+name: Feature Request
 about: Sugira uma nova feature ou melhoria
 title: "[FEATURE] "
 labels: enhancement
-assignees: ''
 ---
 
-## 📝 Descrição da Feature
+## Problema / motivação
 
-<!-- Descreva a feature que você gostaria que fosse implementada -->
+<!-- Que problema essa feature resolve? -->
 
-## 🎯 Problema que Resolve
+## Solução proposta
 
-<!-- Qual problema esta feature resolveria? -->
-
-## 💡 Solução Proposta
-
-<!-- Como você imagina que a feature deveria funcionar? -->
-
-## 📚 Exemplos de Uso
+<!-- Como você imagina que deveria funcionar -->
 
 ```dart
-// Como você gostaria de usar esta feature?
-
-// Exemplo 1
-final cepService = FlutterCep2();
-// ... seu código aqui
-
-// Exemplo 2
-// ... outro exemplo
+// Exemplo de uso, se aplicável
 ```
 
-## 🔄 Alternativas Consideradas
+## Alternativas consideradas
 
-<!-- Quais outras soluções ou features você considerou? -->
-
-## 📌 Por que isso seria útil?
-
-<!-- Explique por que essa feature seria valiosa para outros usuários -->
-
-## 📎 Contexto Adicional
-
-<!-- Adicione screenshots, links ou qualquer outra informação relevante -->
-
-## 📝 Checklist
-
-- [ ] Verifiquei se esta feature já foi sugerida
-- [ ] Esta é uma feature que seria útil para vários usuários
-- [ ] A feature é relevante para o escopo do projeto
-
-## 🏷️ Labels
-
-<!-- Adicione labels relevantes se apropriado -->
-
----
-
-**Obrigado pela sugestão! 🚀**
+<!-- Outras abordagens que você pensou -->
