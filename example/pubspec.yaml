@@ -15,7 +15,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   flutter_cep2:
     path: ../
-  url_launcher: ^6.3.2
+  url_launcher: ^6.3.3
 
 dev_dependencies:
   flutter_test:
