@@ -331,6 +331,10 @@ void main() {
         expect(mockClient.closed, isFalse);
       });
 
+      test('dispose closes the client it created', () {
+        expect(FlutterCep2().dispose, returnsNormally);
+      });
+
       test('should work with XML output format', () async {
         // Arrange
         const validCep = '01310100';
@@ -463,14 +467,8 @@ void main() {
           ibge: '3550308',
         );
 
-        const cep2 = Cep(
-          cep: '01310-100',
-          logradouro: 'Avenida Paulista',
-          bairro: 'Bela Vista',
-          localidade: 'São Paulo',
-          uf: 'SP',
-          ibge: '3550308',
-        );
+        // Built at runtime: two equal const values would be one instance.
+        final cep2 = Cep.fromJson(cep1.toJson());
 
         const cep3 = Cep(
           cep: '01310-101',
