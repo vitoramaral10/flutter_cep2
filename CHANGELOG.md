@@ -14,8 +14,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A malformed body is reported as `Invalid response`, not `Network error`.
 - `dispose()` no longer closes an `http.Client` passed to the constructor.
 - The README said MIT; the package is licensed under LGPL-2.1, as in `LICENSE`.
+- Accented text (`São Paulo`) is no longer garbled when the answer comes
+  without a charset header: the body is always read as UTF-8.
 
 ### Added
+- `CepException.type` (`CepErrorType`), so callers can tell a missing CEP from
+  a network failure without matching the message.
 - `Cep.estado` and `Cep.regiao`, sent by ViaCEP.
 - `timeout` in the constructor (10 seconds by default); a slow request throws
   `CepException('Request timed out')`.
@@ -23,7 +27,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Minimum Dart SDK is declared as 3.0, the real minimum of the dependencies
   (it said 2.17).
-- Wider dependency ranges: `http` ^1.0.0, `meta` ^1.9.0, `xml2json` ^6.0.0.
+- Wider dependency ranges: `http` ^1.0.0, `meta` ^1.9.0.
+- XML answers are read with `package:xml` directly instead of being converted
+  to JSON text and decoded again; the `xml2json` dependency is gone. Empty XML
+  fields (`<unidade></unidade>`) now come as `''`, the same as in JSON, instead
+  of `null`.
+- The library is split into `Cep`, `CepException` and `FlutterCep2` files; the
+  public API and import are unchanged.
 - Example: guards against updating the screen after it is closed; shows the
   state name and region.
 

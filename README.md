@@ -11,7 +11,7 @@ Brazilian ZIP code (CEP) lookup for Dart and Flutter, powered by
 
 - Accepts CEPs in any format (`01310-100`, `01310100`, `01.310-100`)
 - JSON or XML from the API, the same typed `Cep` either way
-- One exception type, `CepException`, for every failure
+- One exception, `CepException`, with a `CepErrorType` for every failure
 - Pure Dart: Android, iOS, web, Windows, macOS and Linux
 
 ## Installation
@@ -51,16 +51,30 @@ await cep.search('01310-100', output: CepOutputFormat.xml);
 
 ### Errors
 
-`search` throws `CepException` with one of these messages:
+`search` throws `CepException`. Branch on `type`; `message` is for logs.
 
-| `message`                              | When                                   |
-|----------------------------------------|----------------------------------------|
-| `Invalid ZIP code format`              | The input does not have 8 digits       |
-| `ZIP code not found`                   | ViaCEP has no address for the CEP      |
-| `HTTP <code>: Failed to fetch ZIP code data` | ViaCEP answered with a non-200 status |
-| `Request timed out`                    | No answer within `timeout`             |
-| `Network error: ...`                   | The request could not be sent          |
-| `Invalid response: ...`                | The body could not be parsed           |
+| `type`            | `message`                                     | When                              |
+|-------------------|-----------------------------------------------|-----------------------------------|
+| `invalidFormat`   | `Invalid ZIP code format`                     | The input does not have 8 digits  |
+| `notFound`        | `ZIP code not found`                          | ViaCEP has no address for the CEP |
+| `http`            | `HTTP <code>: Failed to fetch ZIP code data`  | ViaCEP answered with a non-200    |
+| `timeout`         | `Request timed out`                           | No answer within `timeout`        |
+| `network`         | `Network error: ...`                          | The request could not be sent     |
+| `invalidResponse` | `Invalid response: ...`                       | The body could not be parsed      |
+
+```dart
+try {
+  await cep.search(input);
+} on CepException catch (e) {
+  switch (e.type) {
+    case CepErrorType.invalidFormat:
+    case CepErrorType.notFound:
+      showFieldError('Check the CEP');
+    default:
+      showRetry();
+  }
+}
+```
 
 The format is checked before any request, so invalid input never reaches the
 network.
@@ -94,7 +108,8 @@ limits each request.
 ### `Future<Cep> search(String cep, {CepOutputFormat output = CepOutputFormat.json})`
 
 Looks up the CEP and returns its address. Throws `CepException` (see
-[Errors](#errors)).
+[Errors](#errors)). The answer is read as UTF-8, as ViaCEP sends it, even when
+a proxy drops the charset header.
 
 ### `void dispose()`
 
