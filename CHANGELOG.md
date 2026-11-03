@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `siaf` is filled again: ViaCEP names the field `siafi`.
 - A malformed body is reported as `Invalid response`, not `Network error`.
 - `dispose()` no longer closes an `http.Client` passed to the constructor.
+- The README said MIT; the package is licensed under LGPL-2.1, as in `LICENSE`.
 
 ### Added
 - `Cep.estado` and `Cep.regiao`, sent by ViaCEP.
@@ -20,101 +21,75 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `CepException('Request timed out')`.
 
 ### Changed
-- Dependencies: `xml2json` ^6.2.9, `test` ^1.33.0; GitHub Actions updated.
-- Example: `cupertino_icons` ^2.0.0, `url_launcher` ^6.3.3, `flutter_lints`
-  ^6.0.0; shows state name and region.
+- Minimum Dart SDK is declared as 3.0, the real minimum of the dependencies
+  (it said 2.17).
+- Wider dependency ranges: `http` ^1.0.0, `meta` ^1.9.0, `xml2json` ^6.0.0.
+- Example: guards against updating the screen after it is closed; shows the
+  state name and region.
 
 ## [1.0.2] - 2025-08-07
 
-### 📖 Documentation
-- Added comprehensive Code of Conduct (CODE_OF_CONDUCT.md)
-- Added detailed Contributing Guidelines (CONTRIBUTING.md)
-- Enhanced project documentation for better community engagement
-- Improved development setup instructions
-- Added GitHub Sponsors funding link for project support
+### Added
+- Code of Conduct and contributing guide.
+- GitHub Sponsors funding link.
 
 ## [1.0.1] - 2025-08-07
 
-### 📖 Improved
-- Enhanced example application to better demonstrate plugin usage
-- Updated example UI and user experience for clearer functionality showcase
-- Improved example code documentation and comments
+### Changed
+- Reworked example app.
 
 ## [1.0.0] - 2025-08-07
 
-### ✨ Added
-- Complete rewrite with modern Dart practices and null safety
-- Comprehensive error handling with custom `CepException`
-- New `FlutterCep2` class with proper naming conventions (PascalCase)
-- Support for dependency injection with custom HTTP client
-- `dispose()` method for proper resource cleanup
-- Enhanced API with enum for output formats (`CepOutputFormat`)
-- Full documentation with dartdoc comments
-- Comprehensive test suite with 100% coverage
-- Support for various ZIP code formats (with/without formatting)
-- Immutable `Cep` model with proper `equals` and `hashCode`
-- Platform support declarations for all platforms
-- Topics and metadata in pubspec.yaml
+Rewrite with null safety.
 
-### 🔧 Changed
-- Updated minimum Dart SDK version to 2.17.0
-- Migrated from `pedantic` to `lints` package for better code quality
-- Updated all dependencies to latest versions
-- Improved error messages and exception handling
-- Better input validation for ZIP codes
-- Enhanced code organization and structure
+### Added
+- `FlutterCep2` service with an injectable `http.Client` and `dispose()`.
+- `CepOutputFormat` enum (JSON, XML).
+- `CepException` for every failure.
+- Immutable `Cep` model with value equality, `fromJson` and `toJson`.
+- Accepts CEPs with or without formatting.
+- API documentation and tests.
 
-### 🚨 Breaking Changes
-- Renamed main class from `flutter_cep2` to `FlutterCep2` (PascalCase)
-- Renamed model class from `CEP` to `Cep` (PascalCase)  
-- Changed output parameter from `String` to `CepOutputFormat` enum
-- Updated method signatures and return types
-- Removed support for 'piped' and 'querty' formats (never implemented)
+### Changed
+- **Breaking:** `flutter_cep2` class renamed to `FlutterCep2` and `CEP` to
+  `Cep` (the old names remain as deprecated aliases).
+- **Breaking:** the output format is a `CepOutputFormat` instead of a `String`.
+- Moved from `pedantic` to `lints`.
 
-### 📖 Documentation
-- Completely rewritten README with comprehensive examples
-- Added API reference documentation
-- Included Flutter widget example
-- Added troubleshooting and contribution guidelines
-- Enhanced library documentation
+### Removed
+- **Breaking:** the `piped` and `querty` formats, which never worked.
 
-### 🧪 Testing
-- Added comprehensive test suite with mock HTTP client
-- Tests for all error scenarios and edge cases
-- Tests for different input/output formats
-- Continuous integration improvements
-
-## [0.0.13] - Previous Release
+## [0.0.13]
 
 ### Changed
 - Update xml2json v5.3.2
 
-## [0.0.12] - Previous Release
+## [0.0.12]
 
 ### Added
-- Implementação do CI/CD
+- CI/CD
 
-## [0.0.11] - Previous Release
-
-### Changed
-- Remoção de print
-
-## [0.0.10] - Previous Release
+## [0.0.11]
 
 ### Changed
-- Melhoria no Score
+- Removed a debug print
 
-## [0.0.9] - Previous Release
-
-### Changed
-- Melhoria no Score
-
-## [0.0.8] - Previous Release
+## [0.0.10]
 
 ### Changed
-- Melhoria no README.md
+- pub.dev score improvements
 
-## [0.0.7] - Previous Release
+## [0.0.9]
+
+### Changed
+- pub.dev score improvements
+
+## [0.0.8]
+
+### Changed
+- README improvements
+
+## [0.0.7]
 
 ### Added
-- Versão inicial, desenvolvido por Vitor Melo
+- First version

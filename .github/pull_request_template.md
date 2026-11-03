@@ -1,19 +1,12 @@
-## Descrição
+## What and why
 
-<!-- O que mudou e por quê? -->
+<!-- What changed, and why. -->
 
 Closes #
 
-## Tipo
-
-- [ ] Bug fix
-- [ ] Feature
-- [ ] Breaking change
-- [ ] Docs / chore
-
 ## Checklist
 
-- [ ] Commits seguem [Conventional Commits](CONTRIBUTING.md#commit-messages)
-- [ ] `dart format .` e `dart analyze` passam
-- [ ] Testes adicionados/atualizados e `dart test` passa
-- [ ] CHANGELOG.md atualizado (se aplicável)
+- [ ] Commits follow [Conventional Commits](../CONTRIBUTING.md#commit-messages)
+- [ ] `dart format lib test`, `dart analyze --fatal-infos lib test` and `dart test` pass
+- [ ] Tests added or updated for behavior changes
+- [ ] `CHANGELOG.md` updated under `Unreleased` (if users notice the change)

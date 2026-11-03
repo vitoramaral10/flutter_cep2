@@ -1,34 +1,32 @@
 ---
-name: Bug Report
-about: Reporte um bug encontrado na biblioteca
-title: "[BUG] "
+name: Bug report
+about: Something in flutter_cep2 does not work as documented
+title: ""
 labels: bug
 ---
 
-## Descrição
+## What happens
 
-<!-- Uma ou duas frases sobre o problema -->
+<!-- One or two sentences. -->
 
-## Como reproduzir
+## How to reproduce
 
 ```dart
-// Código mínimo que reproduz o bug
 final cep = FlutterCep2();
 final result = await cep.search('01310-100');
 ```
 
-## Comportamento esperado vs. atual
+## Expected
 
-<!-- O que deveria acontecer e o que acontece -->
+<!-- What should happen instead. -->
 
-## Ambiente
+## Environment
 
 - `flutter_cep2`:
 - Dart / Flutter:
-- OS:
+- Platform:
 
-## Stack trace / logs
+## Stack trace or logs
 
 ```
-[se houver]
 ```

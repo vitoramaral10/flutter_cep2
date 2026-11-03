@@ -1,22 +1,18 @@
 ---
-name: Feature Request
-about: Sugira uma nova feature ou melhoria
-title: "[FEATURE] "
+name: Feature request
+about: Suggest a new feature or an improvement
+title: ""
 labels: enhancement
 ---
 
-## Problema / motivação
+## Problem
 
-<!-- Que problema essa feature resolve? -->
+<!-- What are you trying to do that the package makes hard? -->
 
-## Solução proposta
-
-<!-- Como você imagina que deveria funcionar -->
+## Proposal
 
 ```dart
-// Exemplo de uso, se aplicável
+// How you would like to use it
 ```
 
-## Alternativas consideradas
-
-<!-- Outras abordagens que você pensou -->
+## Alternatives considered
