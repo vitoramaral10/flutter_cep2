@@ -50,14 +50,17 @@ await cep.search('01310-100', output: CepOutputFormat.xml);
 
 ## API
 
-### `FlutterCep2({http.Client? client})`
-Creates the service. Accepts an optional `http.Client` (useful for tests).
+### `FlutterCep2({http.Client? client, Duration timeout = const Duration(seconds: 10)})`
+Creates the service. Accepts an optional `http.Client` (useful for tests) and a
+request timeout.
 
 ### `Future<Cep> search(String cep, {CepOutputFormat output = CepOutputFormat.json})`
-Looks up the CEP. Throws `CepException` for invalid or not-found codes.
+Looks up the CEP. Throws `CepException` for invalid or not-found codes, HTTP
+errors, timeouts, network failures and malformed responses.
 
 ### `void dispose()`
-Closes the underlying HTTP client.
+Closes the HTTP client the service created. A client passed to the constructor
+is left open.
 
 ### `Cep`
 
@@ -69,11 +72,13 @@ Closes the underlying HTTP client.
 | `bairro`      | `String`  | Neighborhood                           |
 | `localidade`  | `String`  | City                                   |
 | `uf`          | `String`  | State (SP, RJ, ...)                    |
+| `estado`      | `String?` | State name (São Paulo, ...)            |
+| `regiao`      | `String?` | Region (Sudeste, ...)                  |
 | `unidade`     | `String?` | Postal unit                            |
 | `ibge`        | `String`  | IBGE municipality code                 |
 | `gia`         | `String?` | GIA code (São Paulo)                   |
 | `ddd`         | `String?` | Area code                              |
-| `siaf`        | `String?` | SIAF code                              |
+| `siaf`        | `String?` | SIAFI code (`siafi` in the API)        |
 
 ## Contributing
 

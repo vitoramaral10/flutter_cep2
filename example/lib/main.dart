@@ -434,9 +434,18 @@ class _ResultDisplay extends StatelessWidget {
                 _AddressRow(
                   icon: Icons.map,
                   label: 'State',
-                  value: result.uf,
+                  value: result.estado?.isNotEmpty == true
+                      ? '${result.estado} (${result.uf})'
+                      : result.uf,
                   onCopy: onCopy,
                 ),
+                if (result.regiao?.isNotEmpty == true)
+                  _AddressRow(
+                    icon: Icons.public,
+                    label: 'Region',
+                    value: result.regiao!,
+                    onCopy: onCopy,
+                  ),
                 if (result.ddd?.isNotEmpty == true)
                   _AddressRow(
                     icon: Icons.phone,
@@ -460,7 +469,7 @@ class _ResultDisplay extends StatelessWidget {
                 if (result.siaf?.isNotEmpty == true)
                   _AddressRow(
                     icon: Icons.account_balance,
-                    label: 'SIAF Code',
+                    label: 'SIAFI Code',
                     value: result.siaf!,
                     onCopy: onCopy,
                   ),

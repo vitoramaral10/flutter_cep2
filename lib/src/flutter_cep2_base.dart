@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
@@ -26,10 +27,21 @@ class FlutterCep2 {
   /// HTTP client used for making requests.
   final http.Client _client;
 
+  /// Whether [_client] was created here, and so is closed by [dispose].
+  final bool _ownsClient;
+
+  /// How long a request may take before it fails with [CepException].
+  final Duration timeout;
+
   /// Creates a new instance of [FlutterCep2].
   ///
-  /// Optionally accepts a custom HTTP [client] for testing purposes.
-  FlutterCep2({http.Client? client}) : _client = client ?? http.Client();
+  /// Optionally accepts a custom HTTP [client]; a client passed in is left
+  /// open by [dispose]. Requests fail after [timeout] (10 seconds by default).
+  FlutterCep2({
+    http.Client? client,
+    this.timeout = const Duration(seconds: 10),
+  })  : _client = client ?? http.Client(),
+        _ownsClient = client == null;
 
   /// Searches for ZIP code information.
   ///
@@ -52,19 +64,29 @@ class FlutterCep2 {
 
     final url = '$_baseUrl$cleanedCep/${output.value}';
 
+    final http.Response response;
     try {
-      final response = await _client.get(Uri.parse(url));
-
-      if (response.statusCode != 200) {
-        throw CepException(
-          'HTTP ${response.statusCode}: Failed to fetch ZIP code data',
-        );
-      }
-
-      return _parseResponse(response.body, output);
+      // shortcut: the timed-out request keeps running in the client, move to
+      // http's AbortableRequest if hung requests ever pile up.
+      response = await _client.get(Uri.parse(url)).timeout(timeout);
+    } on TimeoutException {
+      throw const CepException('Request timed out');
     } catch (e) {
-      if (e is CepException) rethrow;
-      throw CepException('Network error: ${e.toString()}');
+      throw CepException('Network error: $e');
+    }
+
+    if (response.statusCode != 200) {
+      throw CepException(
+        'HTTP ${response.statusCode}: Failed to fetch ZIP code data',
+      );
+    }
+
+    try {
+      return _parseResponse(response.body, output);
+    } on CepException {
+      rethrow;
+    } catch (e) {
+      throw CepException('Invalid response: $e');
     }
   }
 
@@ -92,12 +114,15 @@ class FlutterCep2 {
   Cep _parseJsonResponse(String body) {
     final Map<String, dynamic> data = jsonDecode(body) as Map<String, dynamic>;
 
-    if (data['erro'] == true) {
+    if (_isError(data['erro'])) {
       throw const CepException('ZIP code not found');
     }
 
     return Cep.fromJson(data);
   }
+
+  /// ViaCEP has sent `"erro": true` and, today, `"erro": "true"`.
+  bool _isError(Object? erro) => erro == true || erro == 'true';
 
   /// Parses XML response from the API.
   Cep _parseXmlResponse(String body) {
@@ -107,7 +132,7 @@ class FlutterCep2 {
     final parsedJson = jsonDecode(jsonString) as Map<String, dynamic>;
     final data = parsedJson['xmlcep'] as Map<String, dynamic>;
 
-    if (data['erro'] == 'true') {
+    if (_isError(data['erro'])) {
       throw const CepException('ZIP code not found');
     }
 
@@ -115,8 +140,10 @@ class FlutterCep2 {
   }
 
   /// Closes the HTTP client.
+  ///
+  /// A client passed to the constructor is left open for its owner.
   void dispose() {
-    _client.close();
+    if (_ownsClient) _client.close();
   }
 }
 
@@ -157,6 +184,12 @@ class Cep {
   /// The state abbreviation (UF).
   final String uf;
 
+  /// The state name (estado), e.g. "São Paulo".
+  final String? estado;
+
+  /// The region (regiao), e.g. "Sudeste".
+  final String? regiao;
+
   /// The postal unit (unidade).
   final String? unidade;
 
@@ -169,7 +202,7 @@ class Cep {
   /// The area code (DDD).
   final String? ddd;
 
-  /// The SIAF code.
+  /// The SIAFI city code (sent by ViaCEP as `siafi`).
   final String? siaf;
 
   /// Creates a new [Cep] instance.
@@ -180,6 +213,8 @@ class Cep {
     required this.bairro,
     required this.localidade,
     required this.uf,
+    this.estado,
+    this.regiao,
     this.unidade,
     required this.ibge,
     this.gia,
@@ -196,11 +231,13 @@ class Cep {
       bairro: json['bairro'] as String? ?? '',
       localidade: json['localidade'] as String? ?? '',
       uf: json['uf'] as String? ?? '',
+      estado: json['estado'] as String?,
+      regiao: json['regiao'] as String?,
       unidade: json['unidade'] as String?,
       ibge: json['ibge'] as String? ?? '',
       gia: json['gia'] as String?,
       ddd: json['ddd'] as String?,
-      siaf: json['siaf'] as String?,
+      siaf: (json['siafi'] ?? json['siaf']) as String?,
     );
   }
 
@@ -212,6 +249,8 @@ class Cep {
         'bairro': bairro,
         'localidade': localidade,
         'uf': uf,
+        'estado': estado,
+        'regiao': regiao,
         'unidade': unidade,
         'ibge': ibge,
         'gia': gia,
@@ -235,6 +274,8 @@ class Cep {
         other.bairro == bairro &&
         other.localidade == localidade &&
         other.uf == uf &&
+        other.estado == estado &&
+        other.regiao == regiao &&
         other.unidade == unidade &&
         other.ibge == ibge &&
         other.gia == gia &&
@@ -251,6 +292,8 @@ class Cep {
       bairro,
       localidade,
       uf,
+      estado,
+      regiao,
       unidade,
       ibge,
       gia,

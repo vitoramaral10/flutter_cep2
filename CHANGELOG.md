@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-11-03
+
+### Fixed
+- A missing CEP now throws `CepException('ZIP code not found')`: ViaCEP sends
+  `"erro": "true"` as a string, which used to return an empty `Cep`.
+- `siaf` is filled again: ViaCEP names the field `siafi`.
+- A malformed body is reported as `Invalid response`, not `Network error`.
+- `dispose()` no longer closes an `http.Client` passed to the constructor.
+
+### Added
+- `Cep.estado` and `Cep.regiao`, sent by ViaCEP.
+- `timeout` in the constructor (10 seconds by default); a slow request throws
+  `CepException('Request timed out')`.
+
+### Changed
+- Dependencies: `xml2json` ^6.2.9, `test` ^1.33.0; GitHub Actions updated.
+- Example: `cupertino_icons` ^2.0.0, `url_launcher` ^6.3.3, `flutter_lints`
+  ^6.0.0; shows state name and region.
+
 ## [1.0.2] - 2025-08-07
 
 ### 📖 Documentation
