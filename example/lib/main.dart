@@ -540,41 +540,41 @@ class _AddressRow extends StatelessWidget {
 class _FeaturesList extends StatelessWidget {
   const _FeaturesList();
 
+  static const _features = [
+    (
+      icon: Icons.flash_on,
+      title: 'Clear Errors',
+      description: 'One CepException with a type for every failure',
+    ),
+    (
+      icon: Icons.code,
+      title: 'Multiple Formats',
+      description: 'Supports JSON and XML output formats',
+    ),
+    (
+      icon: Icons.phone_android,
+      title: 'Cross Platform',
+      description: 'Works on Android, iOS, Web, Windows, macOS, and Linux',
+    ),
+    (
+      icon: Icons.security,
+      title: 'Null Safety',
+      description: 'Built with modern Dart null safety features',
+    ),
+    (
+      icon: Icons.bug_report,
+      title: 'Well Tested',
+      description: 'Test suite with 100% line coverage',
+    ),
+    (
+      icon: Icons.integration_instructions,
+      title: 'Easy Integration',
+      description: 'One class, one method, one exception',
+    ),
+  ];
+
   @override
   Widget build(BuildContext context) {
-    final features = [
-      {
-        'icon': Icons.flash_on,
-        'title': 'Fast & Reliable',
-        'description':
-            'Powered by ViaCEP API with comprehensive error handling',
-      },
-      {
-        'icon': Icons.code,
-        'title': 'Multiple Formats',
-        'description': 'Supports JSON and XML output formats',
-      },
-      {
-        'icon': Icons.phone_android,
-        'title': 'Cross Platform',
-        'description': 'Works on Android, iOS, Web, Windows, macOS, and Linux',
-      },
-      {
-        'icon': Icons.security,
-        'title': 'Null Safety',
-        'description': 'Built with modern Dart null safety features',
-      },
-      {
-        'icon': Icons.bug_report,
-        'title': 'Well Tested',
-        'description': 'Comprehensive test suite with 100% coverage',
-      },
-      {
-        'icon': Icons.integration_instructions,
-        'title': 'Easy Integration',
-        'description': 'Simple API with excellent documentation',
-      },
-    ];
 
     return Card(
       elevation: 4,
@@ -605,9 +605,9 @@ class _FeaturesList extends StatelessWidget {
                 crossAxisSpacing: 12,
                 mainAxisSpacing: 12,
               ),
-              itemCount: features.length,
+              itemCount: _features.length,
               itemBuilder: (context, index) {
-                final feature = features[index];
+                final feature = _features[index];
                 return Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
@@ -624,13 +624,13 @@ class _FeaturesList extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(
-                        feature['icon'] as IconData,
+                        feature.icon,
                         size: 32,
                         color: Theme.of(context).colorScheme.primary,
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        feature['title'] as String,
+                        feature.title,
                         style: Theme.of(context).textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
@@ -638,7 +638,7 @@ class _FeaturesList extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        feature['description'] as String,
+                        feature.description,
                         style: Theme.of(context).textTheme.bodySmall,
                         textAlign: TextAlign.center,
                         maxLines: 3,
