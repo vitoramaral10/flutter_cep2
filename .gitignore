@@ -16,7 +16,6 @@
 /windows/
 /linux/
 /web/
-pubspec.lock
 .flutter-plugins
 .flutter-plugins-dependencies
 

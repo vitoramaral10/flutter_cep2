@@ -25,7 +25,7 @@ jobs:
           sdk: stable
 
       - name: Get dependencies
-        run: dart pub get
+        run: dart pub get --no-example
 
       - name: Run tests with coverage
         run: dart test --coverage=coverage
