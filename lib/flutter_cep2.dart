@@ -21,4 +21,6 @@
 /// ```
 library;
 
-export 'src/flutter_cep2_base.dart';
+export 'src/cep.dart';
+export 'src/cep_exception.dart';
+export 'src/flutter_cep2.dart';

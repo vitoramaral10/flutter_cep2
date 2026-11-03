@@ -64,7 +64,7 @@ jobs:
           sdk: stable
 
       - name: Resolve runtime dependencies at their minimum
-        run: dart pub downgrade --no-example http meta xml xml2json
+        run: dart pub downgrade --no-example http meta xml
 
       - name: Run tests
         run: dart test
