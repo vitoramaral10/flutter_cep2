@@ -1,41 +1,39 @@
 version: 2
 
-# https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
-
+# One grouped PR per ecosystem and week. For the package itself, only raise a
+# lower bound when the new version is outside the allowed range, so users keep
+# the widest range possible; the lockfile still moves.
 updates:
   - package-ecosystem: "pub"
     directory: "/"
     schedule:
       interval: "weekly"
       day: "monday"
-    open-pull-requests-limit: 5
-    labels:
-      - "dependencies"
+    versioning-strategy: increase-if-necessary
+    groups:
+      pub:
+        patterns: ["*"]
     commit-message:
-      prefix: "chore"
-      include: "scope"
+      prefix: "chore(deps)"
 
   - package-ecosystem: "pub"
     directory: "/example"
     schedule:
       interval: "weekly"
       day: "monday"
-    open-pull-requests-limit: 3
-    labels:
-      - "dependencies"
-      - "example"
+    groups:
+      example:
+        patterns: ["*"]
     commit-message:
       prefix: "chore(example)"
-      include: "scope"
 
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
       day: "monday"
-    open-pull-requests-limit: 5
-    labels:
-      - "ci"
+    groups:
+      actions:
+        patterns: ["*"]
     commit-message:
       prefix: "ci"
-      include: "scope"

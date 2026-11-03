@@ -1,32 +1,42 @@
-name: Publish to pub.dev
+name: Publish
 
+# Pushing a tag like v1.2.3 publishes that version to pub.dev and creates the
+# GitHub release. Needs automated publishing enabled on pub.dev (package Admin
+# tab: GitHub Actions, repository vitoramaral10/flutter_cep2, tag pattern v{{version}}).
 on:
   push:
     tags:
-      - 'v*'
+      - 'v[0-9]+.[0-9]+.[0-9]+*'
 
 permissions:
+  contents: write
   id-token: write
 
 jobs:
   publish:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v7
 
-      - name: Set up Dart
-        uses: dart-lang/setup-dart@v1
+      - uses: dart-lang/setup-dart@v1
         with:
           sdk: stable
+
+      - name: Tag must match pubspec.yaml
+        run: |
+          version=$(sed -n 's/^version: *//p' pubspec.yaml)
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match pubspec version $version"
+            exit 1
+          fi
 
       - name: Get dependencies
         run: dart pub get --no-example
 
-      - name: Verify formatting
+      - name: Check formatting
         run: dart format --output=none --set-exit-if-changed lib test
 
-      - name: Analyze code
+      - name: Analyze
         run: dart analyze --fatal-infos lib test
 
       - name: Run tests
@@ -34,5 +44,8 @@ jobs:
 
       - name: Publish to pub.dev
         run: dart pub publish --force
-        env:
-          PUB_ENVIRONMENT: github_actions
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v3
+        with:
+          generate_release_notes: true
