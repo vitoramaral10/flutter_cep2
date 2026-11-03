@@ -5,6 +5,11 @@ import 'package:flutter_cep2/flutter_cep2.dart';
 import 'package:http/http.dart' as http;
 import 'package:test/test.dart';
 
+// A UTF-8 body with no charset header: the case where package:http would
+// fall back to latin1.
+http.Response utf8Response(String body, int statusCode) =>
+    http.Response.bytes(utf8.encode(body), statusCode);
+
 // Mock HTTP client for testing
 class MockClient extends http.BaseClient {
   final Map<String, http.Response> responses = {};
@@ -78,7 +83,7 @@ void main() {
 
         mockClient.addResponse(
           'https://viacep.com.br/ws/$validCep/json',
-          http.Response(jsonEncode(expectedResponse), 200),
+          utf8Response(jsonEncode(expectedResponse), 200),
         );
 
         // Act
@@ -107,7 +112,7 @@ void main() {
 
         mockClient.addResponse(
           'https://viacep.com.br/ws/$cleanedCep/json',
-          http.Response(jsonEncode(expectedResponse), 200),
+          utf8Response(jsonEncode(expectedResponse), 200),
         );
 
         // Act
@@ -139,7 +144,7 @@ void main() {
 
         mockClient.addResponse(
           'https://viacep.com.br/ws/$nonExistentCep/json',
-          http.Response(jsonEncode(errorResponse), 200),
+          utf8Response(jsonEncode(errorResponse), 200),
         );
 
         // Act & Assert
@@ -159,7 +164,7 @@ void main() {
 
         mockClient.addResponse(
           'https://viacep.com.br/ws/$validCep/json',
-          http.Response('Server Error', 500),
+          utf8Response('Server Error', 500),
         );
 
         // Act & Assert
@@ -178,7 +183,7 @@ void main() {
         // Current ViaCEP answer for a missing CEP
         mockClient.addResponse(
           'https://viacep.com.br/ws/99999999/json',
-          http.Response('{\n  "erro": "true"\n}', 200),
+          utf8Response('{\n  "erro": "true"\n}', 200),
         );
 
         expect(
@@ -194,7 +199,7 @@ void main() {
       test('should throw for non-existent ZIP code in XML', () async {
         mockClient.addResponse(
           'https://viacep.com.br/ws/99999999/xml',
-          http.Response(
+          utf8Response(
             '<?xml version="1.0" encoding="UTF-8"?>\n'
             '<xmlcep>\n  <erro>true</erro>\n</xmlcep>',
             200,
@@ -282,7 +287,7 @@ void main() {
       test('should report a malformed body as invalid response', () async {
         mockClient.addResponse(
           'https://viacep.com.br/ws/01310100/json',
-          http.Response('<html>oops</html>', 200),
+          utf8Response('<html>oops</html>', 200),
         );
 
         expect(
@@ -326,6 +331,88 @@ void main() {
         );
       });
 
+      test('should reject an XML answer with an unexpected root', () async {
+        mockClient.addResponse(
+          'https://viacep.com.br/ws/01310100/xml',
+          utf8Response('<html><cep>01310-100</cep></html>', 200),
+        );
+
+        expect(
+          () => cepService.search('01310100', output: CepOutputFormat.xml),
+          throwsA(isA<CepException>()
+              .having((e) => e.type, 'type', CepErrorType.invalidResponse)),
+        );
+      });
+
+      group('error type', () {
+        Future<CepErrorType> typeOf(
+          FlutterCep2 service, [
+          String cep = '01310100',
+        ]) async {
+          try {
+            await service.search(cep);
+          } on CepException catch (e) {
+            return e.type;
+          }
+          fail('search did not throw');
+        }
+
+        test('invalidFormat', () async {
+          expect(await typeOf(cepService, '123'), CepErrorType.invalidFormat);
+        });
+
+        test('notFound', () async {
+          mockClient.addResponse(
+            'https://viacep.com.br/ws/01310100/json',
+            utf8Response('{"erro": "true"}', 200),
+          );
+          expect(await typeOf(cepService), CepErrorType.notFound);
+        });
+
+        test('http', () async {
+          mockClient.addResponse(
+            'https://viacep.com.br/ws/01310100/json',
+            utf8Response('Bad Request', 400),
+          );
+          expect(await typeOf(cepService), CepErrorType.http);
+        });
+
+        test('invalidResponse', () async {
+          mockClient.addResponse(
+            'https://viacep.com.br/ws/01310100/json',
+            utf8Response('[1, 2]', 200),
+          );
+          expect(await typeOf(cepService), CepErrorType.invalidResponse);
+        });
+
+        test('invalidResponse for a field of the wrong type', () async {
+          mockClient.addResponse(
+            'https://viacep.com.br/ws/01310100/json',
+            utf8Response('{"cep": 1310100}', 200),
+          );
+          expect(await typeOf(cepService), CepErrorType.invalidResponse);
+        });
+
+        test('timeout', () async {
+          final service = FlutterCep2(
+            client: StuckClient(),
+            timeout: const Duration(milliseconds: 10),
+          );
+          expect(await typeOf(service), CepErrorType.timeout);
+        });
+
+        test('network', () async {
+          final service = FlutterCep2(
+            client: StuckClient(error: http.ClientException('no route')),
+          );
+          expect(await typeOf(service), CepErrorType.network);
+        });
+
+        test('unknown by default', () {
+          expect(const CepException('x').type, CepErrorType.unknown);
+        });
+      });
+
       test('dispose leaves an injected client open', () {
         cepService.dispose();
         expect(mockClient.closed, isFalse);
@@ -354,7 +441,7 @@ void main() {
 
         mockClient.addResponse(
           'https://viacep.com.br/ws/$validCep/xml',
-          http.Response(xmlResponse, 200),
+          utf8Response(xmlResponse, 200),
         );
 
         // Act
