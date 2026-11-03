@@ -1,19 +1,7 @@
-#!/bin/bash
-
-# Pre-commit hook: Format Dart code before committing
-echo "🔍 Formatting Dart code..."
-
-dart format --output=none --set-exit-if-changed .
-
-if [ $? -ne 0 ]; then
-    echo ""
-    echo "⚠️  Code formatting issues found and fixed."
-    echo "Please review the changes and stage them again:"
-    echo ""
-    echo "  git add ."
-    echo "  git commit -m \"your message\""
-    echo ""
-    exit 1
+#!/usr/bin/env bash
+# Refuses the commit when lib/ or test/ is not formatted.
+if ! dart format --output=none --set-exit-if-changed lib test; then
+  echo
+  echo "Run 'dart format lib test', stage the changes and commit again."
+  exit 1
 fi
-
-exit 0
