@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Refuses the commit when lib/ or test/ is not formatted.
+if ! dart format --output=none --set-exit-if-changed lib test; then
+  echo
+  echo "Run 'dart format lib test', stage the changes and commit again."
+  exit 1
+fi

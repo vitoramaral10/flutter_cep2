@@ -1,8 +1,14 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter_cep2/flutter_cep2.dart';
 import 'package:http/http.dart' as http;
 import 'package:test/test.dart';
+
+// A UTF-8 body with no charset header: the case where package:http would
+// fall back to latin1.
+http.Response utf8Response(String body, int statusCode) =>
+    http.Response.bytes(utf8.encode(body), statusCode);
 
 // Mock HTTP client for testing
 class MockClient extends http.BaseClient {
@@ -27,6 +33,24 @@ class MockClient extends http.BaseClient {
       Stream.fromIterable([]),
       404,
     );
+  }
+
+  bool closed = false;
+
+  @override
+  void close() => closed = true;
+}
+
+// Client whose request never answers, or fails before reaching the server.
+class StuckClient extends http.BaseClient {
+  final Object? error;
+
+  StuckClient({this.error});
+
+  @override
+  Future<http.StreamedResponse> send(http.BaseRequest request) {
+    if (error != null) return Future.error(error!);
+    return Completer<http.StreamedResponse>().future;
   }
 }
 
@@ -59,7 +83,7 @@ void main() {
 
         mockClient.addResponse(
           'https://viacep.com.br/ws/$validCep/json',
-          http.Response(jsonEncode(expectedResponse), 200),
+          utf8Response(jsonEncode(expectedResponse), 200),
         );
 
         // Act
@@ -88,7 +112,7 @@ void main() {
 
         mockClient.addResponse(
           'https://viacep.com.br/ws/$cleanedCep/json',
-          http.Response(jsonEncode(expectedResponse), 200),
+          utf8Response(jsonEncode(expectedResponse), 200),
         );
 
         // Act
@@ -120,7 +144,7 @@ void main() {
 
         mockClient.addResponse(
           'https://viacep.com.br/ws/$nonExistentCep/json',
-          http.Response(jsonEncode(errorResponse), 200),
+          utf8Response(jsonEncode(errorResponse), 200),
         );
 
         // Act & Assert
@@ -140,7 +164,7 @@ void main() {
 
         mockClient.addResponse(
           'https://viacep.com.br/ws/$validCep/json',
-          http.Response('Server Error', 500),
+          utf8Response('Server Error', 500),
         );
 
         // Act & Assert
@@ -152,6 +176,250 @@ void main() {
             contains('HTTP 500'),
           )),
         );
+      });
+
+      test('should throw for non-existent ZIP code with erro as string',
+          () async {
+        // Current ViaCEP answer for a missing CEP
+        mockClient.addResponse(
+          'https://viacep.com.br/ws/99999999/json',
+          utf8Response('{\n  "erro": "true"\n}', 200),
+        );
+
+        expect(
+          () => cepService.search('99999999'),
+          throwsA(isA<CepException>().having(
+            (e) => e.message,
+            'message',
+            'ZIP code not found',
+          )),
+        );
+      });
+
+      test('should throw for non-existent ZIP code in XML', () async {
+        mockClient.addResponse(
+          'https://viacep.com.br/ws/99999999/xml',
+          utf8Response(
+            '<?xml version="1.0" encoding="UTF-8"?>\n'
+            '<xmlcep>\n  <erro>true</erro>\n</xmlcep>',
+            200,
+          ),
+        );
+
+        expect(
+          () => cepService.search('99999999', output: CepOutputFormat.xml),
+          throwsA(isA<CepException>().having(
+            (e) => e.message,
+            'message',
+            'ZIP code not found',
+          )),
+        );
+      });
+
+      test('should read estado, regiao and siafi from the current API',
+          () async {
+        mockClient.addResponse(
+          'https://viacep.com.br/ws/01310100/json',
+          http.Response.bytes(
+            utf8.encode(jsonEncode({
+              'cep': '01310-100',
+              'logradouro': 'Avenida Paulista',
+              'complemento': 'de 612 a 1510 - lado par',
+              'unidade': '',
+              'bairro': 'Bela Vista',
+              'localidade': 'São Paulo',
+              'uf': 'SP',
+              'estado': 'São Paulo',
+              'regiao': 'Sudeste',
+              'ibge': '3550308',
+              'gia': '1004',
+              'ddd': '11',
+              'siafi': '7107',
+            })),
+            200,
+            headers: {'content-type': 'application/json; charset=utf-8'},
+          ),
+        );
+
+        final result = await cepService.search('01310100');
+
+        expect(result.estado, 'São Paulo');
+        expect(result.regiao, 'Sudeste');
+        expect(result.siaf, '7107');
+        expect(result.localidade, 'São Paulo');
+      });
+
+      test('should parse the current XML answer', () async {
+        mockClient.addResponse(
+          'https://viacep.com.br/ws/01310100/xml',
+          http.Response.bytes(
+            utf8.encode('''<?xml version="1.0" encoding="UTF-8"?>
+<xmlcep>
+  <cep>01310-100</cep>
+  <logradouro>Avenida Paulista</logradouro>
+  <complemento>de 612 a 1510 - lado par</complemento>
+  <unidade></unidade>
+  <bairro>Bela Vista</bairro>
+  <localidade>São Paulo</localidade>
+  <uf>SP</uf>
+  <estado>São Paulo</estado>
+  <regiao>Sudeste</regiao>
+  <ibge>3550308</ibge>
+  <gia>1004</gia>
+  <ddd>11</ddd>
+  <siafi>7107</siafi>
+</xmlcep>'''),
+            200,
+            headers: {'content-type': 'application/xml; charset=utf-8'},
+          ),
+        );
+
+        final result =
+            await cepService.search('01310100', output: CepOutputFormat.xml);
+
+        expect(result.ddd, '11');
+        expect(result.ibge, '3550308');
+        expect(result.siaf, '7107');
+        expect(result.regiao, 'Sudeste');
+        expect(result.localidade, 'São Paulo');
+      });
+
+      test('should report a malformed body as invalid response', () async {
+        mockClient.addResponse(
+          'https://viacep.com.br/ws/01310100/json',
+          utf8Response('<html>oops</html>', 200),
+        );
+
+        expect(
+          () => cepService.search('01310100'),
+          throwsA(isA<CepException>().having(
+            (e) => e.message,
+            'message',
+            startsWith('Invalid response'),
+          )),
+        );
+      });
+
+      test('should time out', () async {
+        final service = FlutterCep2(
+          client: StuckClient(),
+          timeout: const Duration(milliseconds: 10),
+        );
+
+        expect(
+          () => service.search('01310100'),
+          throwsA(isA<CepException>().having(
+            (e) => e.message,
+            'message',
+            'Request timed out',
+          )),
+        );
+      });
+
+      test('should wrap connection failures as network error', () async {
+        final service = FlutterCep2(
+          client: StuckClient(error: http.ClientException('no route')),
+        );
+
+        expect(
+          () => service.search('01310100'),
+          throwsA(isA<CepException>().having(
+            (e) => e.message,
+            'message',
+            startsWith('Network error'),
+          )),
+        );
+      });
+
+      test('should reject an XML answer with an unexpected root', () async {
+        mockClient.addResponse(
+          'https://viacep.com.br/ws/01310100/xml',
+          utf8Response('<html><cep>01310-100</cep></html>', 200),
+        );
+
+        expect(
+          () => cepService.search('01310100', output: CepOutputFormat.xml),
+          throwsA(isA<CepException>()
+              .having((e) => e.type, 'type', CepErrorType.invalidResponse)),
+        );
+      });
+
+      group('error type', () {
+        Future<CepErrorType> typeOf(
+          FlutterCep2 service, [
+          String cep = '01310100',
+        ]) async {
+          try {
+            await service.search(cep);
+          } on CepException catch (e) {
+            return e.type;
+          }
+          fail('search did not throw');
+        }
+
+        test('invalidFormat', () async {
+          expect(await typeOf(cepService, '123'), CepErrorType.invalidFormat);
+        });
+
+        test('notFound', () async {
+          mockClient.addResponse(
+            'https://viacep.com.br/ws/01310100/json',
+            utf8Response('{"erro": "true"}', 200),
+          );
+          expect(await typeOf(cepService), CepErrorType.notFound);
+        });
+
+        test('http', () async {
+          mockClient.addResponse(
+            'https://viacep.com.br/ws/01310100/json',
+            utf8Response('Bad Request', 400),
+          );
+          expect(await typeOf(cepService), CepErrorType.http);
+        });
+
+        test('invalidResponse', () async {
+          mockClient.addResponse(
+            'https://viacep.com.br/ws/01310100/json',
+            utf8Response('[1, 2]', 200),
+          );
+          expect(await typeOf(cepService), CepErrorType.invalidResponse);
+        });
+
+        test('invalidResponse for a field of the wrong type', () async {
+          mockClient.addResponse(
+            'https://viacep.com.br/ws/01310100/json',
+            utf8Response('{"cep": 1310100}', 200),
+          );
+          expect(await typeOf(cepService), CepErrorType.invalidResponse);
+        });
+
+        test('timeout', () async {
+          final service = FlutterCep2(
+            client: StuckClient(),
+            timeout: const Duration(milliseconds: 10),
+          );
+          expect(await typeOf(service), CepErrorType.timeout);
+        });
+
+        test('network', () async {
+          final service = FlutterCep2(
+            client: StuckClient(error: http.ClientException('no route')),
+          );
+          expect(await typeOf(service), CepErrorType.network);
+        });
+
+        test('unknown by default', () {
+          expect(const CepException('x').type, CepErrorType.unknown);
+        });
+      });
+
+      test('dispose leaves an injected client open', () {
+        cepService.dispose();
+        expect(mockClient.closed, isFalse);
+      });
+
+      test('dispose closes the client it created', () {
+        expect(FlutterCep2().dispose, returnsNormally);
       });
 
       test('should work with XML output format', () async {
@@ -173,7 +441,7 @@ void main() {
 
         mockClient.addResponse(
           'https://viacep.com.br/ws/$validCep/xml',
-          http.Response(xmlResponse, 200),
+          utf8Response(xmlResponse, 200),
         );
 
         // Act
@@ -286,14 +554,8 @@ void main() {
           ibge: '3550308',
         );
 
-        const cep2 = Cep(
-          cep: '01310-100',
-          logradouro: 'Avenida Paulista',
-          bairro: 'Bela Vista',
-          localidade: 'São Paulo',
-          uf: 'SP',
-          ibge: '3550308',
-        );
+        // Built at runtime: two equal const values would be one instance.
+        final cep2 = Cep.fromJson(cep1.toJson());
 
         const cep3 = Cep(
           cep: '01310-101',

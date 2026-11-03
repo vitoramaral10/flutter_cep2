@@ -1,61 +1,78 @@
-# Contribuindo para o flutter_cep2
+# Contributing to flutter_cep2
 
-Obrigado pelo seu interesse! Este guia tem o essencial para contribuir.
+Thanks for helping. This page has what you need to get a change merged.
 
-## Reportando bugs
+## Reporting bugs and asking for features
 
-Abra uma [issue](https://github.com/vitoramaral10/flutter_cep2/issues) usando o template de bug report. Inclua código mínimo que reproduz o problema, versão do `flutter_cep2`, e versão do Dart/Flutter.
+Open an [issue](https://github.com/vitoramaral10/flutter_cep2/issues) with the
+bug report or feature request template. For bugs, include the smallest code
+that shows the problem and your `flutter_cep2` and Dart/Flutter versions.
 
-## Sugerindo features
+For security problems, follow [SECURITY.md](SECURITY.md) instead.
 
-Abra uma [issue](https://github.com/vitoramaral10/flutter_cep2/issues) usando o template de feature request, ou comece uma [discussion](https://github.com/vitoramaral10/flutter_cep2/discussions) se quiser tirar dúvidas antes.
+## Development
 
-## Pull Requests
+You need the Dart SDK (3.0 or later). The `example/` app also needs Flutter.
 
 ```bash
-git clone https://github.com/SEU_USUARIO/flutter_cep2.git
+git clone https://github.com/<you>/flutter_cep2.git
 cd flutter_cep2
-dart pub get
+dart pub get --no-example
+bash scripts/setup-hooks.sh   # format check and commit message check
+```
 
-# faça suas mudanças
+Before opening a pull request, run what CI runs:
 
-dart format .
-dart analyze
+```bash
+dart format lib test
+dart analyze --fatal-infos lib test
 dart test
 ```
 
-Abra o PR contra `main` com uma descrição clara do que mudou e por quê. Adicione testes para mudanças de comportamento e atualize o `CHANGELOG.md` quando aplicável.
+CI also requires at least 90% line coverage, runs the tests with the lowest
+dependency versions allowed by `pubspec.yaml`, and analyzes and tests the
+example app (`cd example && flutter analyze && flutter test`).
+
+## Pull requests
+
+- Open the PR against `main` and say what changed and why.
+- Add or update tests for any change in behavior.
+- Add an entry under `## [Unreleased]` in `CHANGELOG.md` for anything users notice.
+- Keep public APIs documented; the analyzer enforces `public_member_api_docs`.
 
 ## Commit messages
 
-Usamos [Conventional Commits](https://www.conventionalcommits.org/). Formato:
+[Conventional Commits](https://www.conventionalcommits.org/):
+`type(scope?): subject`, with the subject in the imperative, lowercase, no
+final period.
 
-```
-type(scope?): subject
-```
-
-| Type       | Quando usar                              |
+| Type       | Use for                                  |
 |------------|------------------------------------------|
-| `feat`     | Nova funcionalidade                      |
-| `fix`      | Correção de bug                          |
-| `docs`     | Apenas documentação                      |
-| `refactor` | Refatoração sem mudança de comportamento |
-| `perf`     | Melhoria de performance                  |
-| `test`     | Adicionar/ajustar testes                 |
-| `chore`    | Build, deps, tooling                     |
-| `ci`       | CI/CD                                    |
+| `feat`     | A new feature                            |
+| `fix`      | A bug fix                                |
+| `docs`     | Documentation only                       |
+| `style`    | Formatting, no code change               |
+| `refactor` | Code change with no behavior change      |
+| `perf`     | Performance                              |
+| `test`     | Tests only                               |
+| `build`    | Dependencies and packaging               |
+| `ci`       | CI configuration                         |
+| `chore`    | Anything else                            |
+| `revert`   | Reverting a commit                       |
 
-**Subject:** imperativo, minúsculo, sem ponto final, ≤ 50 chars.
+Add `!` after the type for a breaking change, e.g. `feat!: drop XML output`.
 
-**Exemplos:**
-```
-feat: add timeout option to search
-fix: handle malformed XML response
-docs: update README usage example
-```
+## Releasing (maintainers)
 
-Há um git hook que valida o formato — instale com `bash scripts/setup-hooks.sh`.
+1. Bump `version` in `pubspec.yaml` and move the `Unreleased` entries in
+   `CHANGELOG.md` under the new version with today's date.
+2. Merge to `main`.
+3. Tag the merge commit and push the tag:
+   `git tag v1.2.3 && git push origin v1.2.3`.
 
-## Código de Conduta
+The `Publish` workflow checks that the tag matches `pubspec.yaml`, runs the
+checks, publishes to pub.dev and creates the GitHub release.
 
-Veja [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
+## Code of Conduct
+
+This project follows the [Code of Conduct](CODE_OF_CONDUCT.md).
