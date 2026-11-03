@@ -109,7 +109,7 @@ class _CepLookupWidgetState extends State<CepLookupWidget> {
   bool _isLoading = false;
   CepOutputFormat _selectedFormat = CepOutputFormat.json;
 
-  // Exemplos de CEPs para teste rápido
+  // Sample CEPs for a quick try
   final List<String> _exampleCeps = [
     '01310-100', // São Paulo - SP
     '20040-020', // Rio de Janeiro - RJ
@@ -145,16 +145,19 @@ class _CepLookupWidgetState extends State<CepLookupWidget> {
         _controller.text,
         output: _selectedFormat,
       );
+      if (!mounted) return;
       setState(() {
         _result = result;
         _isLoading = false;
       });
     } on CepException catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = e.message;
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = 'Unexpected error: $e';
         _isLoading = false;
