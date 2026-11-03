@@ -16,8 +16,8 @@ import 'package:xml2json/xml2json.dart';
 /// try {
 ///   final result = await cepService.search('01310-100');
 ///   print('Address: ${result.logradouro}');
-/// } catch (e) {
-///   print('Error: $e');
+/// } on CepException catch (e) {
+///   print('Error: ${e.message}');
 /// }
 /// ```
 class FlutterCep2 {

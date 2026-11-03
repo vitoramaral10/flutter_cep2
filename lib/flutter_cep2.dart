@@ -12,12 +12,13 @@
 /// final cepService = FlutterCep2();
 /// try {
 ///   final result = await cepService.search('01310-100');
-///   print('Address: ${result.logradouro}, ' +
-///         '${result.localidade} - ${result.uf}');
-/// } catch (e) {
-///   print('Error: $e');
+///   print('${result.logradouro}, ${result.localidade} - ${result.uf}');
+/// } on CepException catch (e) {
+///   print('Error: ${e.message}');
+/// } finally {
+///   cepService.dispose();
 /// }
 /// ```
-library flutter_cep2;
+library;
 
 export 'src/flutter_cep2_base.dart';
