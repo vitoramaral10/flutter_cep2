@@ -22,6 +22,7 @@ import 'cep_exception.dart';
 class FlutterCep2 {
   static const _host = 'viacep.com.br';
   static final _nonDigits = RegExp(r'[^0-9]');
+  static final _uf = RegExp(r'^[A-Za-z]{2}$');
 
   /// HTTP client used for making requests.
   final http.Client _client;
@@ -60,14 +61,76 @@ class FlutterCep2 {
       );
     }
 
+    final data = await _get([digits], output);
+    if (data is! Map<String, Object?>) {
+      throw _invalidResponse('expected an object, got ${data.runtimeType}');
+    }
+
+    // ViaCEP has sent `"erro": true` and, today, `"erro": "true"`.
+    final erro = data['erro'];
+    if (erro == true || erro == 'true') {
+      throw const CepException(
+        'ZIP code not found',
+        type: CepErrorType.notFound,
+      );
+    }
+
+    return _cep(data);
+  }
+
+  /// Searches ZIP codes by address.
+  ///
+  /// [uf] is the two-letter state code; [city] and [street] need at least
+  /// three characters each, as ViaCEP requires. ViaCEP matches [street] by
+  /// prefix of each word and returns at most 50 results. No match is an
+  /// empty list, not an error.
+  ///
+  /// Throws [CepException]; its [CepException.type] says why.
+  Future<List<Cep>> searchAddress(
+    String uf,
+    String city,
+    String street, {
+    CepOutputFormat output = CepOutputFormat.json,
+  }) async {
+    final state = uf.trim();
+    final town = city.trim();
+    final road = street.trim();
+    if (!_uf.hasMatch(state) || town.length < 3 || road.length < 3) {
+      throw const CepException(
+        'Invalid address: UF needs 2 letters, city and street 3 characters',
+        type: CepErrorType.invalidFormat,
+      );
+    }
+
+    final data = await _get([state, town, road], output);
+    if (data is! List) {
+      throw _invalidResponse('expected a list, got ${data.runtimeType}');
+    }
+    return [for (final item in data) _cep(item)];
+  }
+
+  /// GETs `/ws/<segments>/<output>` from ViaCEP and decodes the body.
+  Future<Object?> _get(List<String> segments, CepOutputFormat output) async {
+    final abort = Completer<void>();
     final http.Response response;
     try {
-      // shortcut: the timed-out request keeps running in the client, move to
-      // http's AbortableRequest if hung requests ever pile up.
+      // Clients that support it (IOClient, BrowserClient...) drop the
+      // connection on abort; the rest just stop being awaited.
       response = await _client
-          .get(Uri.https(_host, '/ws/$digits/${output.value}'))
+          .send(http.AbortableRequest(
+            'GET',
+            // pathSegments escapes a `/` typed inside a city or street.
+            Uri(
+              scheme: 'https',
+              host: _host,
+              pathSegments: ['ws', ...segments, output.value],
+            ),
+            abortTrigger: abort.future,
+          ))
+          .then(http.Response.fromStream)
           .timeout(timeout);
     } on TimeoutException {
+      abort.complete();
       throw const CepException(
         'Request timed out',
         type: CepErrorType.timeout,
@@ -83,42 +146,42 @@ class FlutterCep2 {
       );
     }
 
-    final Map<String, Object?> data;
     try {
       // ViaCEP always answers in UTF-8, with or without a charset header.
       final body = utf8.decode(response.bodyBytes);
-      data = switch (output) {
-        CepOutputFormat.json => jsonDecode(body) as Map<String, Object?>,
-        CepOutputFormat.xml => _xmlFields(body),
+      return switch (output) {
+        CepOutputFormat.json => jsonDecode(body),
+        CepOutputFormat.xml => _xml(body),
       };
     } catch (e) {
       throw _invalidResponse(e);
     }
+  }
 
-    // ViaCEP has sent `"erro": true` and, today, `"erro": "true"`.
-    final erro = data['erro'];
-    if (erro == true || erro == 'true') {
-      throw const CepException(
-        'ZIP code not found',
-        type: CepErrorType.notFound,
-      );
-    }
-
+  static Cep _cep(Object? data) {
     try {
-      return Cep.fromJson(data);
+      return Cep.fromJson(data as Map<String, dynamic>);
     } catch (e) {
       throw _invalidResponse(e);
     }
   }
 
-  /// Reads `<xmlcep><field>value</field>...</xmlcep>` into a map.
-  static Map<String, String> _xmlFields(String body) {
+  /// Reads `<xmlcep>` into a field map, or into a list of them when it wraps
+  /// `<enderecos>` (address search).
+  static Object _xml(String body) {
     final root = XmlDocument.parse(body).rootElement;
     if (root.name.local != 'xmlcep') {
       throw FormatException('Unexpected root element <${root.name.local}>');
     }
-    return {for (final e in root.childElements) e.name.local: e.innerText};
+    final list = root.getElement('enderecos');
+    if (list != null) {
+      return [for (final e in list.childElements) _xmlFields(e)];
+    }
+    return _xmlFields(root);
   }
+
+  static Map<String, String> _xmlFields(XmlElement element) =>
+      {for (final e in element.childElements) e.name.local: e.innerText};
 
   static CepException _invalidResponse(Object error) => CepException(
         'Invalid response: $error',

@@ -18,16 +18,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   without a charset header: the body is always read as UTF-8.
 
 ### Added
+- `searchAddress(uf, city, street)`: lists the CEPs of a street, from ViaCEP's
+  `/ws/UF/city/street/` search, in JSON or XML.
 - `CepException.type` (`CepErrorType`), so callers can tell a missing CEP from
   a network failure without matching the message.
 - `Cep.estado` and `Cep.regiao`, sent by ViaCEP.
 - `timeout` in the constructor (10 seconds by default); a slow request throws
-  `CepException('Request timed out')`.
+  `CepException('Request timed out')` and the request is aborted, so the
+  connection does not stay open.
 
 ### Changed
 - Minimum Dart SDK is declared as 3.0, the real minimum of the dependencies
   (it said 2.17).
-- Wider dependency ranges: `http` ^1.0.0, `meta` ^1.9.0.
+- Dependency ranges: `http` ^1.5.0 (needed to abort a timed-out request),
+  `meta` ^1.9.0.
 - XML answers are read with `package:xml` directly instead of being converted
   to JSON text and decoded again; the `xml2json` dependency is gone. Empty XML
   fields (`<unidade></unidade>`) now come as `''`, the same as in JSON, instead
