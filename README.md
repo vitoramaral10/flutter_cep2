@@ -20,6 +20,10 @@
 </p>
 
 <p align="center">
+  🇧🇷 <i>Busca de CEP e de endereço para Dart e Flutter, com ViaCEP, BrasilAPI e OpenCEP, fallback automático, cache, latitude/longitude e validação de CEP offline.</i>
+</p>
+
+<p align="center">
   <a href="#-quick-start">Quick start</a> •
   <a href="#-usage">Usage</a> •
   <a href="#-error-handling">Errors</a> •

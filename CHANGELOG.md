@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-11-04
+
+### Changed
+- The Example tab on pub.dev shows short recipes (lookup, fallback and cache,
+  address search, coordinates, offline helpers, error messages) before the
+  Flutter app.
+- Description and README summary in Portuguese, so the package shows up when
+  searching for "busca de CEP".
+
 ## [1.2.0] - 2026-11-04
 
 ### Added
