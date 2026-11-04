@@ -18,6 +18,21 @@
 ///   cepService.dispose();
 /// }
 /// ```
+///
+/// Fall back to other providers and cache answers:
+///
+/// ```dart
+/// final cepService = FlutterCep2(
+///   providers: [
+///     CepProvider.viaCep,
+///     CepProvider.brasilApi,
+///     CepProvider.openCep,
+///   ],
+///   cacheDuration: const Duration(hours: 1),
+/// );
+/// ```
+///
+/// Offline helpers: [isValidCep], [formatCep] and [cepState].
 library;
 
 export 'src/cep.dart';

@@ -1,6 +1,6 @@
 name: flutter_cep2
-description: Brazilian ZIP code (CEP) lookup for Dart and Flutter. ViaCEP with BrasilAPI and OpenCEP fallback, cache, coordinates and offline helpers.
-version: 1.2.0
+description: 'Busca de CEP para Dart e Flutter: ViaCEP, BrasilAPI e OpenCEP com fallback, cache, coordenadas e validação offline. Brazilian ZIP code (CEP) lookup.'
+version: 1.2.1
 homepage: https://github.com/vitoramaral10/flutter_cep2
 repository: https://github.com/vitoramaral10/flutter_cep2
 issue_tracker: https://github.com/vitoramaral10/flutter_cep2/issues
