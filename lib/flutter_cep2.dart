@@ -1,8 +1,7 @@
 /// A Brazilian ZIP code (CEP) lookup library for Dart and Flutter.
 ///
-/// This library provides a simple way to lookup Brazilian postal code
-/// information using the ViaCEP API. It supports multiple output formats
-/// and provides proper error handling.
+/// Looks up Brazilian postal codes with ViaCEP, optionally falling back to
+/// BrasilAPI and OpenCEP and caching answers in memory.
 ///
 /// ## Usage
 ///
@@ -23,4 +22,5 @@ library;
 
 export 'src/cep.dart';
 export 'src/cep_exception.dart';
+export 'src/cep_utils.dart' show cepState, formatCep, isValidCep;
 export 'src/flutter_cep2.dart';

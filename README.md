@@ -16,7 +16,7 @@
 
 <p align="center">
   <b>Look up any Brazilian CEP, or find the CEPs of a street, with one call.</b><br>
-  Typed results, one exception type, every platform. Powered by <a href="https://viacep.com.br/">ViaCEP</a>.
+  Provider fallback, built-in cache, coordinates and offline helpers, on every platform. Powered by <a href="https://viacep.com.br/">ViaCEP</a>, <a href="https://brasilapi.com.br/">BrasilAPI</a> and <a href="https://opencep.com/">OpenCEP</a>.
 </p>
 
 <p align="center">
@@ -39,6 +39,10 @@
 | 🗺️ | **Search by address** | State + city + street returns every matching CEP |
 | 🧱 | **Typed model** | An immutable `Cep` with value equality and `fromJson`/`toJson` |
 | 🚦 | **Clear errors** | One `CepException` with a `CepErrorType` for every failure |
+| 🛟 | **Provider fallback** | ViaCEP down or missing the CEP? BrasilAPI and OpenCEP step in |
+| ⚡ | **Built-in cache** | Repeated lookups come from memory, not the network |
+| 📍 | **Coordinates** | Latitude and longitude from BrasilAPI |
+| 📴 | **Offline helpers** | Validate, format and find the state of a CEP with no request |
 | ⏱️ | **Timeouts that cancel** | A slow request is aborted, not just abandoned |
 | 🔤 | **JSON or XML** | Pick the ViaCEP format; you get the same `Cep` back |
 | 🧪 | **Testable** | Inject any `http.Client`; 100% line coverage in the package itself |
@@ -107,6 +111,69 @@ await cep.search('01310-100', output: CepOutputFormat.xml);
 
 The result is the same `Cep`; only the wire format changes.
 
+### Fallback to other providers
+
+ViaCEP is the default and the only provider asked unless you list more. With
+several, `search` asks them in order and returns the first answer:
+
+```dart
+final cep = FlutterCep2(
+  providers: [CepProvider.viaCep, CepProvider.brasilApi, CepProvider.openCep],
+);
+```
+
+The next provider is tried when one fails (offline, timeout, HTTP error, bad
+body) **or** does not know the CEP, since their databases differ. If all of them
+fail, you get `notFound` when any of them said the CEP does not exist, and the
+last error otherwise.
+
+| Provider                   | Fields filled                                             |
+|----------------------------|-----------------------------------------------------------|
+| `CepProvider.viaCep`       | All, plus XML output and `searchAddress`                  |
+| `CepProvider.openCep`      | All except `ddd`, `gia` and `siaf`                        |
+| `CepProvider.brasilApi`    | `cep`, `logradouro`, `bairro`, `localidade`, `uf`, `ibge`, `latitude`, `longitude` |
+
+`searchAddress` always uses ViaCEP, the only one with address search.
+
+### Cache
+
+```dart
+final cep = FlutterCep2(cacheDuration: const Duration(hours: 1));
+```
+
+Successful answers of `search` and `searchAddress` are kept in memory for that
+long, so a repeated lookup skips the network (and ViaCEP's rate limit). Errors
+are never cached, and the cache holds at most 1000 answers, dropping the oldest.
+It is off by default.
+
+### Coordinates
+
+BrasilAPI also returns where the CEP is. Put it first when you need the map
+point:
+
+```dart
+final cep = FlutterCep2(providers: [CepProvider.brasilApi, CepProvider.viaCep]);
+final address = await cep.search('01310-100');
+print('${address.latitude}, ${address.longitude}'); // -23.5617698, -46.6553299
+```
+
+`latitude` and `longitude` are null when the answer came from another provider
+or BrasilAPI does not know the point.
+
+### Offline helpers
+
+No request, no `FlutterCep2` needed:
+
+```dart
+isValidCep('01310-100');  // true: 8 digits (says nothing about existing)
+formatCep('01310100');    // '01310-100'; null when invalid
+cepState('01310-100');    // (uf: 'SP', estado: 'São Paulo', regiao: 'Sudeste')
+```
+
+`cepState` uses the Correios number ranges: handy to pre-fill the state in a
+form or route a request. A few special CEPs break the ranges, so look the CEP
+up when the answer must be exact.
+
 ### Timeout and custom HTTP client
 
 ```dart
@@ -168,10 +235,13 @@ final cep = FlutterCep2(client: client);
 
 | Member | Description |
 |--------|-------------|
-| `FlutterCep2({http.Client? client, Duration timeout})` | Creates the service. `timeout` defaults to 10 seconds |
-| `Future<Cep> search(String cep, {CepOutputFormat output})` | Looks up one CEP |
+| `FlutterCep2({http.Client? client, Duration timeout, List<CepProvider> providers, Duration? cacheDuration})` | Creates the service. `timeout` defaults to 10 seconds, `providers` to ViaCEP only, and the cache is off |
+| `Future<Cep> search(String cep, {CepOutputFormat output})` | Looks up one CEP, falling back through `providers` |
 | `Future<List<Cep>> searchAddress(String uf, String city, String street, {CepOutputFormat output})` | Lists the CEPs of a street |
 | `void dispose()` | Closes the HTTP client the service created |
+| `bool isValidCep(String cep)` | Whether the CEP has 8 digits, offline |
+| `String? formatCep(String cep)` | `XXXXX-XXX`, or null when invalid |
+| `cepState(String cep)` | `(uf, estado, regiao)` from the CEP ranges, or null |
 
 Full docs on [pub.dev](https://pub.dev/documentation/flutter_cep2/latest/).
 
@@ -193,6 +263,8 @@ Full docs on [pub.dev](https://pub.dev/documentation/flutter_cep2/latest/).
 | `gia`         | `String?` | GIA code (São Paulo only)              |
 | `ddd`         | `String?` | Area code                              |
 | `siaf`        | `String?` | SIAFI code (`siafi` in the API)        |
+| `latitude`    | `double?` | Latitude (BrasilAPI only)              |
+| `longitude`   | `double?` | Longitude (BrasilAPI only)             |
 
 `Cep` is immutable, compares by value and converts with `Cep.fromJson` and
 `toJson()`.
@@ -219,15 +291,16 @@ flutter run
 <summary><b>Is ViaCEP free? Are there limits?</b></summary>
 
 ViaCEP is a free public service, not run by this package. It asks clients not
-to send bulk lookups, and heavy use may get your IP blocked. Cache the results
-you look up often.
+to send bulk lookups, and heavy use may get your IP blocked. Turn on the
+[cache](#cache) and list a [fallback provider](#fallback-to-other-providers) so
+a block does not stop your app.
 </details>
 
 <details>
 <summary><b>Does it work on Flutter web?</b></summary>
 
-Yes. ViaCEP allows cross-origin requests, so the same code runs in the
-browser. The example app above is the web build.
+Yes. ViaCEP, BrasilAPI and OpenCEP allow cross-origin requests, so the same
+code runs in the browser. The example app above is the web build.
 </details>
 
 <details>

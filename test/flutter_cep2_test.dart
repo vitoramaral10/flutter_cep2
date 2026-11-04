@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:flutter_cep2/flutter_cep2.dart';
 import 'package:http/http.dart' as http;
+import 'package:http/testing.dart' as testing;
 import 'package:test/test.dart';
 
 // A UTF-8 body with no charset header: the case where package:http would
@@ -611,6 +612,357 @@ void main() {
           ),
           CepErrorType.http,
         );
+      });
+    });
+
+    group('providers', () {
+      const viaCep = 'https://viacep.com.br/ws/01310100/json';
+      const brasilApi = 'https://brasilapi.com.br/api/cep/v2/01310100';
+      const openCep = 'https://opencep.com/v1/01310100';
+      const viaCepBody =
+          '{"cep": "01310-100", "logradouro": "Avenida Paulista",'
+          ' "bairro": "Bela Vista", "localidade": "São Paulo", "uf": "SP",'
+          ' "ibge": "3550308", "ddd": "11"}';
+      const brasilApiBody = '{"cep": "01310100", "state": "SP",'
+          ' "city": "São Paulo", "neighborhood": "Bela Vista",'
+          ' "street": "Avenida Paulista", "service": "open-cep",'
+          ' "ibge": {"city": "3550308", "state": "35"}, "location":'
+          ' {"type": "Point", "coordinates":'
+          ' {"longitude": "-46.6553299", "latitude": "-23.5617698"}}}';
+      const openCepBody =
+          '{"cep": "01310-100", "logradouro": "Avenida Paulista",'
+          ' "complemento": "de 612 a 1510 - lado par", "bairro": "Bela Vista",'
+          ' "localidade": "São Paulo", "uf": "SP", "estado": "São Paulo",'
+          ' "regiao": "Sudeste", "ibge": "3550308"}';
+
+      /// Answers each URL from [routes] (status, body); anything else is a
+      /// connection error. Records every URL asked.
+      (FlutterCep2, List<String>) serviceWith(
+        Map<String, (int, String)> routes, {
+        List<CepProvider> providers = CepProvider.values,
+        Duration? cacheDuration,
+      }) {
+        final asked = <String>[];
+        final client = testing.MockClient((request) async {
+          final url = request.url.toString();
+          asked.add(url);
+          final route = routes[url];
+          if (route == null) throw http.ClientException('down', request.url);
+          return utf8Response(route.$2, route.$1);
+        });
+        return (
+          FlutterCep2(
+            client: client,
+            providers: providers,
+            cacheDuration: cacheDuration,
+          ),
+          asked,
+        );
+      }
+
+      Future<CepErrorType> typeOf(Future<Object?> Function() call) async {
+        try {
+          await call();
+        } on CepException catch (e) {
+          return e.type;
+        }
+        fail('no CepException');
+      }
+
+      test('ViaCEP only by default', () {
+        expect(FlutterCep2().providers, [CepProvider.viaCep]);
+      });
+
+      test('an empty list is rejected', () {
+        expect(() => FlutterCep2(providers: []), throwsArgumentError);
+      });
+
+      test('BrasilAPI fields map to Cep', () async {
+        final (service, _) = serviceWith(
+          {brasilApi: (200, brasilApiBody)},
+          providers: [CepProvider.brasilApi],
+        );
+
+        final cep = await service.search('01310-100');
+
+        expect(cep.cep, '01310-100');
+        expect(cep.logradouro, 'Avenida Paulista');
+        expect(cep.bairro, 'Bela Vista');
+        expect(cep.localidade, 'São Paulo');
+        expect(cep.uf, 'SP');
+        expect(cep.ibge, '3550308');
+        expect(cep.latitude, -23.5617698);
+        expect(cep.longitude, -46.6553299);
+      });
+
+      test('BrasilAPI without a usable location has no coordinates', () async {
+        for (final location in [
+          '',
+          ', "location": {"type": "Point", "coordinates": {}}',
+          ', "location": {"coordinates": {"latitude": "x", "longitude": "1"}}',
+        ]) {
+          final (service, _) = serviceWith(
+            {
+              brasilApi: (200, '{"cep": "01310100", "state": "SP"$location}'),
+            },
+            providers: [CepProvider.brasilApi],
+          );
+          final cep = await service.search('01310100');
+          expect(cep.latitude, isNull, reason: location);
+          expect(cep.longitude, isNull, reason: location);
+          expect(cep.ibge, '');
+        }
+      });
+
+      test('a BrasilAPI ibge without city is invalidResponse', () async {
+        final (service, _) = serviceWith(
+          {brasilApi: (200, '{"cep": "01310100", "ibge": {"state": "35"}}')},
+          providers: [CepProvider.brasilApi],
+        );
+        expect(
+          await typeOf(() => service.search('01310100')),
+          CepErrorType.invalidResponse,
+        );
+      });
+
+      test('OpenCEP fields map to Cep', () async {
+        final (service, _) = serviceWith(
+          {openCep: (200, openCepBody)},
+          providers: [CepProvider.openCep],
+        );
+
+        final cep = await service.search('01310100');
+
+        expect(cep.complemento, 'de 612 a 1510 - lado par');
+        expect(cep.regiao, 'Sudeste');
+        expect(cep.ibge, '3550308');
+        expect(cep.latitude, isNull);
+      });
+
+      test('coordinates survive toJson and fromJson', () {
+        const cep = Cep(
+          cep: '01310-100',
+          logradouro: 'Avenida Paulista',
+          bairro: 'Bela Vista',
+          localidade: 'São Paulo',
+          uf: 'SP',
+          ibge: '3550308',
+          latitude: -23.56,
+          longitude: -46.65,
+        );
+        expect(Cep.fromJson(cep.toJson()), cep);
+        expect(cep, isNot(Cep.fromJson({...cep.toJson(), 'latitude': 0})));
+        expect(
+            const Cep(
+                    cep: '',
+                    logradouro: '',
+                    bairro: '',
+                    localidade: '',
+                    uf: '',
+                    ibge: '')
+                .toJson(),
+            isNot(contains('latitude')));
+      });
+
+      test('a 404 is notFound for BrasilAPI and OpenCEP', () async {
+        for (final (provider, url) in [
+          (CepProvider.brasilApi, brasilApi),
+          (CepProvider.openCep, openCep),
+        ]) {
+          final (service, _) = serviceWith(
+            {url: (404, '{"error": true}')},
+            providers: [provider],
+          );
+          expect(
+            await typeOf(() => service.search('01310100')),
+            CepErrorType.notFound,
+            reason: '$provider',
+          );
+        }
+      });
+
+      test('a BrasilAPI body of the wrong shape is invalidResponse', () async {
+        final (service, _) = serviceWith(
+          {brasilApi: (200, '[]')},
+          providers: [CepProvider.brasilApi],
+        );
+        expect(
+          await typeOf(() => service.search('01310100')),
+          CepErrorType.invalidResponse,
+        );
+      });
+
+      test('falls back when a provider is down', () async {
+        final (service, asked) = serviceWith({brasilApi: (200, brasilApiBody)});
+
+        final cep = await service.search('01310100');
+
+        expect(cep.logradouro, 'Avenida Paulista');
+        expect(asked, [viaCep, brasilApi]);
+      });
+
+      test('falls back when a provider does not know the CEP', () async {
+        final (service, asked) = serviceWith({
+          viaCep: (200, '{"erro": "true"}'),
+          brasilApi: (500, ''),
+          openCep: (200, openCepBody),
+        });
+
+        final cep = await service.search('01310100');
+
+        expect(cep.regiao, 'Sudeste');
+        expect(asked, [viaCep, brasilApi, openCep]);
+      });
+
+      test('stops at the first answer', () async {
+        final (service, asked) = serviceWith({viaCep: (200, viaCepBody)});
+
+        expect((await service.search('01310100')).ddd, '11');
+        expect(asked, [viaCep]);
+      });
+
+      test('notFound wins when every provider fails', () async {
+        final (service, _) = serviceWith({brasilApi: (404, '')});
+        expect(
+          await typeOf(() => service.search('01310100')),
+          CepErrorType.notFound,
+        );
+      });
+
+      test('otherwise the last error is thrown', () async {
+        final (service, _) = serviceWith({openCep: (503, '')});
+        expect(
+          await typeOf(() => service.search('01310100')),
+          CepErrorType.http,
+        );
+      });
+
+      test('an invalid CEP asks nobody', () async {
+        final (service, asked) = serviceWith({});
+        expect(
+          await typeOf(() => service.search('123')),
+          CepErrorType.invalidFormat,
+        );
+        expect(asked, isEmpty);
+      });
+    });
+
+    group('cache', () {
+      const viaCep = 'https://viacep.com.br/ws/01310100';
+      const address = 'https://viacep.com.br/ws/SP/Sao%20Paulo/Paulista';
+      const body = '{"cep": "01310-100", "logradouro": "Avenida Paulista",'
+          ' "bairro": "Bela Vista", "localidade": "São Paulo", "uf": "SP",'
+          ' "ibge": "3550308"}';
+
+      (FlutterCep2, List<String>) serviceWith(
+        Duration? cacheDuration, {
+        int status = 200,
+      }) {
+        final asked = <String>[];
+        final client = testing.MockClient((request) async {
+          final url = request.url.toString();
+          asked.add(url);
+          if (url.startsWith(address)) {
+            return utf8Response('[$body, $body]', status);
+          }
+          if (url == '$viaCep/xml') {
+            return utf8Response(
+                '<xmlcep><cep>01310-100</cep></xmlcep>', status);
+          }
+          return utf8Response(body, status);
+        });
+        return (
+          FlutterCep2(client: client, cacheDuration: cacheDuration),
+          asked,
+        );
+      }
+
+      test('off by default', () async {
+        final (service, asked) = serviceWith(null);
+        await service.search('01310100');
+        await service.search('01310100');
+        expect(asked, hasLength(2));
+      });
+
+      test('a repeated lookup skips the network', () async {
+        final (service, asked) = serviceWith(const Duration(minutes: 1));
+
+        final first = await service.search('01310-100');
+        final second = await service.search('01310100');
+
+        expect(second, first);
+        expect(asked, ['$viaCep/json']);
+      });
+
+      test('the format does not split the cache', () async {
+        final (service, asked) = serviceWith(const Duration(minutes: 1));
+        await service.search('01310100');
+        await service.search('01310100', output: CepOutputFormat.xml);
+        expect(asked, ['$viaCep/json']);
+      });
+
+      test('an answer expires after cacheDuration', () async {
+        final (service, asked) = serviceWith(const Duration(milliseconds: 20));
+        await service.search('01310100');
+        await Future<void>.delayed(const Duration(milliseconds: 40));
+        await service.search('01310100');
+        expect(asked, hasLength(2));
+      });
+
+      test('errors are not cached', () async {
+        final (service, asked) = serviceWith(
+          const Duration(minutes: 1),
+          status: 500,
+        );
+        for (var i = 0; i < 2; i++) {
+          await expectLater(
+            service.search('01310100'),
+            throwsA(isA<CepException>()),
+          );
+        }
+        expect(asked, hasLength(2));
+      });
+
+      test('address search is cached, case-insensitively', () async {
+        final (service, asked) = serviceWith(const Duration(minutes: 1));
+
+        final first =
+            await service.searchAddress('SP', 'Sao Paulo', 'Paulista');
+        final second =
+            await service.searchAddress('sp', 'sao paulo', 'PAULISTA');
+
+        expect(second, first);
+        expect(asked, ['$address/json']);
+      });
+
+      test('a cached address list can be changed by the caller', () async {
+        final (service, _) = serviceWith(const Duration(minutes: 1));
+
+        final first = await service.searchAddress('SP', 'Sao Paulo', 'Paulista')
+          ..clear();
+        final second =
+            await service.searchAddress('SP', 'Sao Paulo', 'Paulista')
+              ..removeLast();
+
+        expect(first, isEmpty);
+        expect(second, hasLength(1));
+        expect(
+          await service.searchAddress('SP', 'Sao Paulo', 'Paulista'),
+          hasLength(2),
+        );
+      });
+
+      test('keeps at most 1000 answers, dropping the oldest', () async {
+        final (service, asked) = serviceWith(const Duration(minutes: 1));
+        for (var i = 0; i <= 1000; i++) {
+          await service.search(i.toString().padLeft(8, '0'));
+        }
+        asked.clear();
+
+        await service.search('00001000'); // newest: still cached
+        await service.search('00000000'); // oldest: dropped
+
+        expect(asked, ['https://viacep.com.br/ws/00000000/json']);
       });
     });
 
