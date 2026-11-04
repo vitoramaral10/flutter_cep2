@@ -49,13 +49,26 @@ end; it reuses the same HTTP connection.
 await cep.search('01310-100', output: CepOutputFormat.xml);
 ```
 
+### Search by address
+
+```dart
+final matches = await cep.searchAddress('RS', 'Porto Alegre', 'Domingos Jose');
+for (final m in matches) {
+  print('${m.cep} ${m.logradouro}');
+}
+```
+
+`uf` is the two-letter state; `city` and `street` need at least 3 characters.
+ViaCEP returns up to 50 matches; none is an empty list.
+
 ### Errors
 
-`search` throws `CepException`. Branch on `type`; `message` is for logs.
+`search` and `searchAddress` throw `CepException`. Branch on `type`; `message` is for logs.
 
 | `type`            | `message`                                     | When                              |
 |-------------------|-----------------------------------------------|-----------------------------------|
 | `invalidFormat`   | `Invalid ZIP code format`                     | The input does not have 8 digits  |
+| `invalidFormat`   | `Invalid address: ...`                        | `searchAddress` input too short   |
 | `notFound`        | `ZIP code not found`                          | ViaCEP has no address for the CEP |
 | `http`            | `HTTP <code>: Failed to fetch ZIP code data`  | ViaCEP answered with a non-200    |
 | `timeout`         | `Request timed out`                           | No answer within `timeout`        |
@@ -103,13 +116,19 @@ A client you pass in stays open after `dispose()`; closing it is up to you.
 ### `FlutterCep2({http.Client? client, Duration timeout = const Duration(seconds: 10)})`
 
 Creates the service. `client` replaces the internal HTTP client; `timeout`
-limits each request.
+limits each request and aborts it when it runs out (on clients that support
+aborting, such as the default one).
 
 ### `Future<Cep> search(String cep, {CepOutputFormat output = CepOutputFormat.json})`
 
 Looks up the CEP and returns its address. Throws `CepException` (see
 [Errors](#errors)). The answer is read as UTF-8, as ViaCEP sends it, even when
 a proxy drops the charset header.
+
+### `Future<List<Cep>> searchAddress(String uf, String city, String street, {CepOutputFormat output = CepOutputFormat.json})`
+
+Lists the CEPs whose street matches `street` in `city`/`uf`. Returns an empty
+list when nothing matches. Throws `CepException` (see [Errors](#errors)).
 
 ### `void dispose()`
 

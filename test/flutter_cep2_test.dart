@@ -47,9 +47,15 @@ class StuckClient extends http.BaseClient {
 
   StuckClient({this.error});
 
+  /// Set when the request's abort trigger fires.
+  bool aborted = false;
+
   @override
   Future<http.StreamedResponse> send(http.BaseRequest request) {
     if (error != null) return Future.error(error!);
+    if (request case http.Abortable(:final abortTrigger?)) {
+      abortTrigger.then((_) => aborted = true);
+    }
     return Completer<http.StreamedResponse>().future;
   }
 }
@@ -394,11 +400,14 @@ void main() {
         });
 
         test('timeout', () async {
+          final client = StuckClient();
           final service = FlutterCep2(
-            client: StuckClient(),
+            client: client,
             timeout: const Duration(milliseconds: 10),
           );
           expect(await typeOf(service), CepErrorType.timeout);
+          await Future<void>.delayed(Duration.zero);
+          expect(client.aborted, isTrue, reason: 'timeout aborts the request');
         });
 
         test('network', () async {
@@ -455,6 +464,153 @@ void main() {
         expect(result.logradouro, equals('Avenida Paulista'));
         expect(result.localidade, equals('São Paulo'));
         expect(result.uf, equals('SP'));
+      });
+    });
+
+    group('searchAddress', () {
+      const url = 'https://viacep.com.br/ws/RS/Porto%20Alegre/Domingos%20Jose';
+      const item = {
+        'cep': '91790-072',
+        'logradouro': 'Rua Domingos José Poli',
+        'bairro': 'Restinga',
+        'localidade': 'Porto Alegre',
+        'uf': 'RS',
+        'ibge': '4314902',
+        'siafi': '8801',
+      };
+
+      Future<CepErrorType> typeOf(Future<Object?> Function() call) async {
+        try {
+          await call();
+        } on CepException catch (e) {
+          return e.type;
+        }
+        fail('no CepException');
+      }
+
+      test('returns every match from JSON', () async {
+        mockClient.addResponse(
+          '$url/json',
+          utf8Response(jsonEncode([item, item]), 200),
+        );
+
+        final result = await cepService.searchAddress(
+          ' RS ',
+          'Porto Alegre',
+          'Domingos Jose',
+        );
+
+        expect(result, hasLength(2));
+        expect(result.first.logradouro, 'Rua Domingos José Poli');
+        expect(result.first.siaf, '8801');
+      });
+
+      test('returns every match from XML', () async {
+        mockClient.addResponse(
+          '$url/xml',
+          utf8Response(
+            '<?xml version="1.0" encoding="utf-8"?><xmlcep><enderecos>'
+            '<endereco><cep>91790-072</cep><logradouro>Rua Domingos José Poli'
+            '</logradouro><uf>RS</uf></endereco>'
+            '<endereco><cep>90420-200</cep><uf>RS</uf></endereco>'
+            '</enderecos></xmlcep>',
+            200,
+          ),
+        );
+
+        final result = await cepService.searchAddress(
+          'RS',
+          'Porto Alegre',
+          'Domingos Jose',
+          output: CepOutputFormat.xml,
+        );
+
+        expect(result.map((c) => c.cep), ['91790-072', '90420-200']);
+        expect(result.first.logradouro, 'Rua Domingos José Poli');
+      });
+
+      test('no match is an empty list', () async {
+        mockClient.addResponse('$url/json', utf8Response('[]', 200));
+        mockClient.addResponse(
+          '$url/xml',
+          utf8Response('<xmlcep><enderecos/></xmlcep>', 200),
+        );
+
+        for (final output in CepOutputFormat.values) {
+          expect(
+            await cepService.searchAddress(
+              'RS',
+              'Porto Alegre',
+              'Domingos Jose',
+              output: output,
+            ),
+            isEmpty,
+          );
+        }
+      });
+
+      test('escapes a slash inside a segment', () async {
+        mockClient.addResponse(
+          'https://viacep.com.br/ws/RS/Porto%20Alegre/A%2FB/json',
+          utf8Response('[]', 200),
+        );
+        expect(
+          await cepService.searchAddress('RS', 'Porto Alegre', 'A/B'),
+          isEmpty,
+        );
+      });
+
+      test('rejects short input without a request', () async {
+        for (final args in [
+          ('R', 'Porto Alegre', 'Domingos'),
+          ('R1', 'Porto Alegre', 'Domingos'),
+          ('RS', 'Po', 'Domingos'),
+          ('RS', 'Porto Alegre', ' Do '),
+        ]) {
+          expect(
+            await typeOf(
+              () => cepService.searchAddress(args.$1, args.$2, args.$3),
+            ),
+            CepErrorType.invalidFormat,
+            reason: '$args',
+          );
+        }
+      });
+
+      test('an object instead of a list is invalidResponse', () async {
+        mockClient.addResponse(
+          '$url/json',
+          utf8Response('{"erro": "true"}', 200),
+        );
+        expect(
+          await typeOf(
+            () =>
+                cepService.searchAddress('RS', 'Porto Alegre', 'Domingos Jose'),
+          ),
+          CepErrorType.invalidResponse,
+        );
+      });
+
+      test('an item that is not an object is invalidResponse', () async {
+        mockClient.addResponse('$url/json', utf8Response('[1]', 200));
+        expect(
+          await typeOf(
+            () =>
+                cepService.searchAddress('RS', 'Porto Alegre', 'Domingos Jose'),
+          ),
+          CepErrorType.invalidResponse,
+        );
+      });
+
+      test('HTTP 400 is http', () async {
+        mockClient.addResponse('$url/json', utf8Response('', 400));
+        expect(
+          await typeOf(
+            () =>
+                cepService.searchAddress('RS', 'Porto Alegre', 'Domingos Jose'),
+          ),
+          CepErrorType.http,
+        );
       });
     });
 
