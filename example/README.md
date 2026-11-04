@@ -1,5 +1,7 @@
 # flutter_cep2 example
 
+<img src="../doc/images/example-app.webp" alt="Example app showing the address of CEP 01310-100" width="300">
+
 A Flutter app that looks up CEPs with `flutter_cep2`: type a CEP or tap one of
 the samples, pick JSON or XML, and see every field of the address with a copy
 button.

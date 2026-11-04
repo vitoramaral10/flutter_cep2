@@ -26,6 +26,10 @@ topics:
   - zipcode
   - viacep
 
+screenshots:
+  - description: Example app showing the address found for CEP 01310-100.
+    path: doc/images/example-app.webp
+
 platforms:
   android:
   ios:
