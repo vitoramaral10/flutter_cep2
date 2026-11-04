@@ -6,8 +6,10 @@ import 'package:xml/xml.dart';
 
 import 'cep.dart';
 import 'cep_exception.dart';
+import 'cep_utils.dart';
 
-/// A Brazilian ZIP code (CEP) lookup service using the ViaCEP API.
+/// A Brazilian ZIP code (CEP) lookup service backed by ViaCEP, with optional
+/// fallback to other providers and an optional in-memory cache.
 ///
 /// Example usage:
 /// ```dart
@@ -20,8 +22,6 @@ import 'cep_exception.dart';
 /// }
 /// ```
 class FlutterCep2 {
-  static const _host = 'viacep.com.br';
-  static final _nonDigits = RegExp(r'[^0-9]');
   static final _uf = RegExp(r'^[A-Za-z]{2}$');
 
   /// HTTP client used for making requests.
@@ -33,49 +33,137 @@ class FlutterCep2 {
   /// How long a request may take before it fails with [CepException].
   final Duration timeout;
 
+  /// Providers [search] asks, in order, until one finds the CEP.
+  final List<CepProvider> providers;
+
+  /// Successful answers kept in memory; null when caching is off.
+  final _Cache? _cache;
+
   /// Creates a new instance of [FlutterCep2].
   ///
   /// Optionally accepts a custom HTTP [client]; a client passed in is left
   /// open by [dispose]. Requests fail after [timeout] (10 seconds by default).
+  ///
+  /// [providers] lists who [search] asks, in order (ViaCEP only by default).
+  /// When one fails or does not know the CEP, the next one is tried.
+  ///
+  /// With [cacheDuration], successful answers of [search] and [searchAddress]
+  /// are kept in memory for that long, so repeated lookups skip the network.
   FlutterCep2({
     http.Client? client,
     this.timeout = const Duration(seconds: 10),
+    List<CepProvider> providers = const [CepProvider.viaCep],
+    Duration? cacheDuration,
   })  : _client = client ?? http.Client(),
-        _ownsClient = client == null;
+        _ownsClient = client == null,
+        providers = providers.isEmpty
+            ? throw ArgumentError.value(providers, 'providers', 'is empty')
+            : List.unmodifiable(providers),
+        _cache = cacheDuration == null ? null : _Cache(cacheDuration);
 
   /// Searches for ZIP code information.
   ///
   /// [cep] is the Brazilian ZIP code, with or without formatting. [output]
-  /// picks the format ViaCEP answers in; the result is the same [Cep].
+  /// picks the format ViaCEP answers in; the result is the same [Cep]. Other
+  /// providers always answer in JSON.
+  ///
+  /// [providers] are tried in order. When all of them fail, the error is
+  /// [CepErrorType.notFound] if any provider said the CEP does not exist, and
+  /// otherwise the last provider's error.
   ///
   /// Throws [CepException]; its [CepException.type] says why.
   Future<Cep> search(
     String cep, {
     CepOutputFormat output = CepOutputFormat.json,
   }) async {
-    final digits = cep.replaceAll(_nonDigits, '');
-    if (digits.length != 8) {
+    final digits = cepDigits(cep);
+    if (digits == null) {
       throw const CepException(
         'Invalid ZIP code format',
         type: CepErrorType.invalidFormat,
       );
     }
 
-    final data = await _get([digits], output);
-    if (data is! Map<String, Object?>) {
-      throw _invalidResponse('expected an object, got ${data.runtimeType}');
-    }
+    final key = 'cep:$digits';
+    if (_cache?.get(key) case final Cep hit) return hit;
 
-    // ViaCEP has sent `"erro": true` and, today, `"erro": "true"`.
-    final erro = data['erro'];
-    if (erro == true || erro == 'true') {
-      throw const CepException(
-        'ZIP code not found',
-        type: CepErrorType.notFound,
-      );
+    CepException? notFound;
+    late CepException last;
+    for (final provider in providers) {
+      try {
+        final result = await _lookup(provider, digits, output);
+        _cache?.put(key, result);
+        return result;
+      } on CepException catch (e) {
+        if (e.type == CepErrorType.notFound) notFound ??= e;
+        last = e;
+      }
     }
+    throw notFound ?? last;
+  }
 
-    return _cep(data);
+  Future<Cep> _lookup(
+    CepProvider provider,
+    String digits,
+    CepOutputFormat output,
+  ) async {
+    switch (provider) {
+      case CepProvider.viaCep:
+        final data = await _get(_viaCep([digits], output), output);
+        if (data is! Map<String, Object?>) {
+          throw _invalidResponse('expected an object, got ${data.runtimeType}');
+        }
+        // ViaCEP has sent `"erro": true` and, today, `"erro": "true"`.
+        final erro = data['erro'];
+        if (erro == true || erro == 'true') throw _notFound;
+        return _cep(data);
+
+      case CepProvider.brasilApi:
+        final data = await _get(
+          Uri.https('brasilapi.com.br', '/api/cep/v2/$digits'),
+          CepOutputFormat.json,
+          notFoundOn404: true,
+        );
+        try {
+          final map = data as Map<String, Object?>;
+          final ibge = switch (map['ibge']) {
+            null => '',
+            {'city': final String city} => city,
+            final other => throw FormatException('Unexpected ibge: $other'),
+          };
+          // A GeoJSON point with the numbers as strings; often missing.
+          final (lat, lng) = switch (map['location']) {
+            {
+              'coordinates': {
+                'latitude': final Object lat,
+                'longitude': final Object lng,
+              }
+            } =>
+              (double.tryParse('$lat'), double.tryParse('$lng')),
+            _ => (null, null),
+          };
+          return Cep(
+            cep: formatCep(digits)!,
+            logradouro: map['street'] as String? ?? '',
+            bairro: map['neighborhood'] as String? ?? '',
+            localidade: map['city'] as String? ?? '',
+            uf: map['state'] as String? ?? '',
+            ibge: ibge,
+            latitude: lng == null ? null : lat,
+            longitude: lat == null ? null : lng,
+          );
+        } catch (e) {
+          throw _invalidResponse(e);
+        }
+
+      case CepProvider.openCep:
+        final data = await _get(
+          Uri.https('opencep.com', '/v1/$digits'),
+          CepOutputFormat.json,
+          notFoundOn404: true,
+        );
+        return _cep(data);
+    }
   }
 
   /// Searches ZIP codes by address.
@@ -102,31 +190,41 @@ class FlutterCep2 {
       );
     }
 
-    final data = await _get([state, town, road], output);
+    final key = 'address:$state/$town/$road'.toLowerCase();
+    // Copies, so a caller sorting its list does not change the cached one.
+    if (_cache?.get(key) case final List<Cep> hit) return List.of(hit);
+
+    final data = await _get(_viaCep([state, town, road], output), output);
     if (data is! List) {
       throw _invalidResponse('expected a list, got ${data.runtimeType}');
     }
-    return [for (final item in data) _cep(item)];
+    final result = [for (final item in data) _cep(item)];
+    _cache?.put(key, List<Cep>.unmodifiable(result));
+    return result;
   }
 
-  /// GETs `/ws/<segments>/<output>` from ViaCEP and decodes the body.
-  Future<Object?> _get(List<String> segments, CepOutputFormat output) async {
+  /// `/ws/<segments>/<output>` on ViaCEP; pathSegments escapes a `/` typed
+  /// inside a city or street.
+  static Uri _viaCep(List<String> segments, CepOutputFormat output) => Uri(
+        scheme: 'https',
+        host: 'viacep.com.br',
+        pathSegments: ['ws', ...segments, output.value],
+      );
+
+  /// GETs [uri] and decodes the body in [output] format. With [notFoundOn404],
+  /// a 404 means the provider does not know the CEP.
+  Future<Object?> _get(
+    Uri uri,
+    CepOutputFormat output, {
+    bool notFoundOn404 = false,
+  }) async {
     final abort = Completer<void>();
     final http.Response response;
     try {
       // Clients that support it (IOClient, BrowserClient...) drop the
       // connection on abort; the rest just stop being awaited.
       response = await _client
-          .send(http.AbortableRequest(
-            'GET',
-            // pathSegments escapes a `/` typed inside a city or street.
-            Uri(
-              scheme: 'https',
-              host: _host,
-              pathSegments: ['ws', ...segments, output.value],
-            ),
-            abortTrigger: abort.future,
-          ))
+          .send(http.AbortableRequest('GET', uri, abortTrigger: abort.future))
           .then(http.Response.fromStream)
           .timeout(timeout);
     } on TimeoutException {
@@ -139,6 +237,7 @@ class FlutterCep2 {
       throw CepException('Network error: $e', type: CepErrorType.network);
     }
 
+    if (notFoundOn404 && response.statusCode == 404) throw _notFound;
     if (response.statusCode != 200) {
       throw CepException(
         'HTTP ${response.statusCode}: Failed to fetch ZIP code data',
@@ -147,7 +246,7 @@ class FlutterCep2 {
     }
 
     try {
-      // ViaCEP always answers in UTF-8, with or without a charset header.
+      // The providers answer in UTF-8, with or without a charset header.
       final body = utf8.decode(response.bodyBytes);
       return switch (output) {
         CepOutputFormat.json => jsonDecode(body),
@@ -183,6 +282,11 @@ class FlutterCep2 {
   static Map<String, String> _xmlFields(XmlElement element) =>
       {for (final e in element.childElements) e.name.local: e.innerText};
 
+  static const _notFound = CepException(
+    'ZIP code not found',
+    type: CepErrorType.notFound,
+  );
+
   static CepException _invalidResponse(Object error) => CepException(
         'Invalid response: $error',
         type: CepErrorType.invalidResponse,
@@ -208,6 +312,55 @@ enum CepOutputFormat {
 
   /// The string value used in API requests.
   final String value;
+}
+
+/// A CEP lookup service [FlutterCep2.search] can ask.
+enum CepProvider {
+  /// [ViaCEP](https://viacep.com.br), the default. The only one with XML
+  /// output and address search, and the only one that fills `complemento`,
+  /// `ddd`, `gia` and `siaf`.
+  viaCep,
+
+  /// [BrasilAPI](https://brasilapi.com.br), which itself queries several CEP
+  /// sources. Fills street, neighborhood, city, state, IBGE code and, when it
+  /// knows them, the only provider to do so, [Cep.latitude] and
+  /// [Cep.longitude].
+  brasilApi,
+
+  /// [OpenCEP](https://opencep.com), with the same fields as ViaCEP except
+  /// `ddd`, `gia` and `siaf`.
+  openCep,
+}
+
+/// In-memory store of successful answers that expire after [duration].
+class _Cache {
+  _Cache(this.duration);
+
+  /// How long an answer stays valid.
+  final Duration duration;
+
+  // shortcut: drops the oldest entry past this size instead of true LRU;
+  // make it configurable if someone needs a bigger cache.
+  static const _maxEntries = 1000;
+
+  // A map literal is a LinkedHashMap: keys keep insertion order.
+  final _entries = <String, (Object, DateTime)>{};
+
+  Object? get(String key) {
+    final entry = _entries[key];
+    if (entry == null) return null;
+    if (DateTime.now().isAfter(entry.$2)) {
+      _entries.remove(key);
+      return null;
+    }
+    return entry.$1;
+  }
+
+  void put(String key, Object value) {
+    _entries.remove(key);
+    if (_entries.length >= _maxEntries) _entries.remove(_entries.keys.first);
+    _entries[key] = (value, DateTime.now().add(duration));
+  }
 }
 
 /// Deprecated alias of [FlutterCep2].

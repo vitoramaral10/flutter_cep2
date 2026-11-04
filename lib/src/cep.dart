@@ -44,6 +44,13 @@ class Cep {
   /// The SIAFI city code (sent by ViaCEP as `siafi`).
   final String? siaf;
 
+  /// Latitude in degrees; only `CepProvider.brasilApi` fills it, and not for
+  /// every CEP.
+  final double? latitude;
+
+  /// Longitude in degrees; filled together with [latitude].
+  final double? longitude;
+
   /// Creates a new [Cep] instance.
   const Cep({
     required this.cep,
@@ -59,6 +66,8 @@ class Cep {
     this.gia,
     this.ddd,
     this.siaf,
+    this.latitude,
+    this.longitude,
   });
 
   /// Creates a [Cep] instance from a JSON map.
@@ -77,6 +86,8 @@ class Cep {
       gia: json['gia'] as String?,
       ddd: json['ddd'] as String?,
       siaf: (json['siafi'] ?? json['siaf']) as String?,
+      latitude: (json['latitude'] as num?)?.toDouble(),
+      longitude: (json['longitude'] as num?)?.toDouble(),
     );
   }
 
@@ -95,6 +106,8 @@ class Cep {
         'gia': gia,
         'ddd': ddd,
         'siaf': siaf,
+        if (latitude != null) 'latitude': latitude,
+        if (longitude != null) 'longitude': longitude,
       };
 
   @override
@@ -119,7 +132,9 @@ class Cep {
         other.ibge == ibge &&
         other.gia == gia &&
         other.ddd == ddd &&
-        other.siaf == siaf;
+        other.siaf == siaf &&
+        other.latitude == latitude &&
+        other.longitude == longitude;
   }
 
   @override
@@ -138,6 +153,8 @@ class Cep {
       gia,
       ddd,
       siaf,
+      latitude,
+      longitude,
     );
   }
 }

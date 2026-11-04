@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-11-04
+
+### Added
+- `providers`: `search` can fall back to BrasilAPI and OpenCEP
+  (`CepProvider`) when ViaCEP fails or does not know the CEP. ViaCEP alone is
+  still the default.
+- `cacheDuration`: keeps successful answers of `search` and `searchAddress` in
+  memory (up to 1000), so repeated lookups skip the network. Off by default.
+- `Cep.latitude` and `Cep.longitude`, filled by BrasilAPI (now queried on its
+  v2 API) when it knows the point.
+- Offline helpers: `isValidCep`, `formatCep` and `cepState`, which gives the
+  state and region from the Correios CEP ranges with no request.
+
 ## [1.1.1] - 2026-11-04
 
 ### Changed
