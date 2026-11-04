@@ -16,6 +16,9 @@ concurrency:
 jobs:
   test:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # Codecov upload via OIDC, no token secret
     steps:
       - uses: actions/checkout@v7
 
@@ -51,6 +54,7 @@ jobs:
         uses: codecov/codecov-action@v7
         with:
           files: ./coverage/lcov.info
+          use_oidc: true
           fail_ci_if_error: false
 
   # The lowest versions allowed by pubspec.yaml must still work.

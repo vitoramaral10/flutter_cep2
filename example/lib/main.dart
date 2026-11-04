@@ -508,7 +508,7 @@ class _AddressRow extends StatelessWidget {
           Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary),
           const SizedBox(width: 8),
           SizedBox(
-            width: 80,
+            width: 104,
             child: Text(
               '$label:',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(

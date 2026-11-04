@@ -1,28 +1,54 @@
-# flutter_cep2
+<p align="center">
+  <img src="doc/images/banner.webp" alt="flutter_cep2: Brazilian ZIP code lookup for Dart and Flutter" width="100%">
+</p>
 
-[![pub package](https://img.shields.io/pub/v/flutter_cep2.svg)](https://pub.dev/packages/flutter_cep2)
-[![pub points](https://img.shields.io/pub/points/flutter_cep2)](https://pub.dev/packages/flutter_cep2/score)
-[![Tests](https://github.com/vitoramaral10/flutter_cep2/actions/workflows/test.yml/badge.svg)](https://github.com/vitoramaral10/flutter_cep2/actions/workflows/test.yml)
-[![codecov](https://codecov.io/gh/vitoramaral10/flutter_cep2/branch/main/graph/badge.svg)](https://codecov.io/gh/vitoramaral10/flutter_cep2)
-[![license](https://img.shields.io/badge/license-LGPL--2.1-blue.svg)](LICENSE)
+<p align="center">
+  <a href="https://pub.dev/packages/flutter_cep2"><img src="https://img.shields.io/pub/v/flutter_cep2?logo=dart&label=pub&color=0175C2" alt="pub version"></a>
+  <a href="https://pub.dev/packages/flutter_cep2/score"><img src="https://img.shields.io/pub/points/flutter_cep2?logo=dart" alt="pub points"></a>
+  <a href="https://pub.dev/packages/flutter_cep2/score"><img src="https://img.shields.io/pub/likes/flutter_cep2?logo=dart" alt="pub likes"></a>
+  <a href="https://pub.dev/packages/flutter_cep2/score"><img src="https://img.shields.io/pub/dm/flutter_cep2?logo=dart" alt="downloads"></a>
+  <br>
+  <a href="https://github.com/vitoramaral10/flutter_cep2/actions/workflows/test.yml"><img src="https://github.com/vitoramaral10/flutter_cep2/actions/workflows/test.yml/badge.svg" alt="tests"></a>
+  <a href="https://codecov.io/gh/vitoramaral10/flutter_cep2"><img src="https://codecov.io/gh/vitoramaral10/flutter_cep2/branch/main/graph/badge.svg" alt="coverage"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-LGPL--2.1-blue" alt="license"></a>
+  <img src="https://img.shields.io/badge/platforms-android%20%7C%20ios%20%7C%20web%20%7C%20desktop-3A6B3A" alt="platforms">
+</p>
 
-Brazilian ZIP code (CEP) lookup for Dart and Flutter, powered by
-[ViaCEP](https://viacep.com.br/).
+<p align="center">
+  <b>Look up any Brazilian CEP, or find the CEPs of a street, with one call.</b><br>
+  Typed results, one exception type, every platform. Powered by <a href="https://viacep.com.br/">ViaCEP</a>.
+</p>
 
-- Accepts CEPs in any format (`01310-100`, `01310100`, `01.310-100`)
-- JSON or XML from the API, the same typed `Cep` either way
-- One exception, `CepException`, with a `CepErrorType` for every failure
-- Pure Dart: Android, iOS, web, Windows, macOS and Linux
+<p align="center">
+  <a href="#-quick-start">Quick start</a> •
+  <a href="#-usage">Usage</a> •
+  <a href="#-error-handling">Errors</a> •
+  <a href="#-api-reference">API</a> •
+  <a href="#-example-app">Example</a> •
+  <a href="#-faq">FAQ</a> •
+  <a href="#-contributing">Contributing</a>
+</p>
 
-## Installation
+---
+
+## ✨ Features
+
+|     | Feature | Details |
+|-----|---------|---------|
+| 🔎 | **CEP lookup** | `01310-100`, `01310100` and `01.310-100` all work |
+| 🗺️ | **Search by address** | State + city + street returns every matching CEP |
+| 🧱 | **Typed model** | An immutable `Cep` with value equality and `fromJson`/`toJson` |
+| 🚦 | **Clear errors** | One `CepException` with a `CepErrorType` for every failure |
+| ⏱️ | **Timeouts that cancel** | A slow request is aborted, not just abandoned |
+| 🔤 | **JSON or XML** | Pick the ViaCEP format; you get the same `Cep` back |
+| 🧪 | **Testable** | Inject any `http.Client`; 100% line coverage in the package itself |
+| 🌍 | **Pure Dart** | Android, iOS, web, Windows, macOS, Linux and server-side Dart |
+
+## 🚀 Quick start
 
 ```bash
-dart pub add flutter_cep2
+dart pub add flutter_cep2      # or: flutter pub add flutter_cep2
 ```
-
-Requires Dart 3.0 or later (Flutter 3.10 or later).
-
-## Usage
 
 ```dart
 import 'package:flutter_cep2/flutter_cep2.dart';
@@ -30,50 +56,73 @@ import 'package:flutter_cep2/flutter_cep2.dart';
 Future<void> main() async {
   final cep = FlutterCep2();
   try {
-    final result = await cep.search('01310-100');
-    print('${result.logradouro}, ${result.bairro} - ${result.localidade}/${result.uf}');
+    final address = await cep.search('01310-100');
+    print('${address.logradouro}, ${address.bairro} - ${address.localidade}/${address.uf}');
+    // Avenida Paulista, Bela Vista - São Paulo/SP
   } on CepException catch (e) {
-    print('CEP error: ${e.message}');
+    print('Lookup failed: ${e.message}');
   } finally {
     cep.dispose();
   }
 }
 ```
 
-Keep one `FlutterCep2` for as long as you need it and call `dispose()` at the
-end; it reuses the same HTTP connection.
+> Requires Dart 3.0+ (Flutter 3.10+).
 
-### XML output
+## 📖 Usage
+
+### Look up a CEP
+
+```dart
+final address = await cep.search('01310100');
+print(address.estado); // São Paulo
+print(address.ddd);    // 11
+```
+
+Keep one `FlutterCep2` for as long as you need it and call `dispose()` at the
+end: every lookup reuses the same HTTP connection.
+
+### Search by address
+
+Don't know the CEP? Give the state, city and street:
+
+```dart
+final matches = await cep.searchAddress('RS', 'Porto Alegre', 'Domingos Jose');
+for (final m in matches) {
+  print('${m.cep}  ${m.logradouro}, ${m.bairro}');
+}
+// 91790-072  Rua Domingos José Poli, Restinga
+// 90420-200  Rua Domingos José de Almeida, Rio Branco
+```
+
+`uf` is the two-letter state code; `city` and `street` need at least 3
+characters. ViaCEP returns up to 50 matches, and no match is an empty list, not
+an error.
+
+### XML instead of JSON
 
 ```dart
 await cep.search('01310-100', output: CepOutputFormat.xml);
 ```
 
-### Search by address
+The result is the same `Cep`; only the wire format changes.
+
+### Timeout and custom HTTP client
 
 ```dart
-final matches = await cep.searchAddress('RS', 'Porto Alegre', 'Domingos Jose');
-for (final m in matches) {
-  print('${m.cep} ${m.logradouro}');
-}
+final cep = FlutterCep2(
+  timeout: const Duration(seconds: 5), // default: 10 seconds
+  client: myHttpClient,                // optional; you keep ownership
+);
 ```
 
-`uf` is the two-letter state; `city` and `street` need at least 3 characters.
-ViaCEP returns up to 50 matches; none is an empty list.
+When the timeout runs out the request is aborted and `search` throws a
+`CepException` of type `timeout`. A client you pass in stays open after
+`dispose()`; closing it is up to you.
 
-### Errors
+## 🚨 Error handling
 
-`search` and `searchAddress` throw `CepException`. Branch on `type`; `message` is for logs.
-
-| `type`            | `message`                                     | When                              |
-|-------------------|-----------------------------------------------|-----------------------------------|
-| `invalidFormat`   | `Invalid ZIP code format`                     | The input does not have 8 digits  |
-| `invalidFormat`   | `Invalid address: ...`                        | `searchAddress` input too short   |
-| `notFound`        | `ZIP code not found`                          | ViaCEP has no address for the CEP |
-| `http`            | `HTTP <code>: Failed to fetch ZIP code data`  | ViaCEP answered with a non-200    |
-| `timeout`         | `Request timed out`                           | No answer within `timeout`        |
-| `network`         | `Network error: ...`                          | The request could not be sent     |
-| `invalidResponse` | `Invalid response: ...`                       | The body could not be parsed      |
+Every failure is a `CepException`. Branch on `type`; `message` is for logs.
 
 ```dart
 try {
@@ -89,12 +138,18 @@ try {
 }
 ```
 
-The format is checked before any request, so invalid input never reaches the
-network.
+| `type`            | When                                                   |
+|-------------------|--------------------------------------------------------|
+| `invalidFormat`   | The CEP doesn't have 8 digits, or the address is too short. Nothing is sent |
+| `notFound`        | ViaCEP has no address for the CEP                      |
+| `http`            | ViaCEP answered with a status other than 200           |
+| `timeout`         | No answer within `timeout`                             |
+| `network`         | The request could not be sent (offline, DNS, TLS...)   |
+| `invalidResponse` | The body could not be read as a ViaCEP answer          |
 
-### Testing your code
+## 🧪 Testing your code
 
-Pass your own `http.Client`, for example `MockClient` from `package:http/testing.dart`:
+Pass a fake client, for example `MockClient` from `package:http/testing.dart`:
 
 ```dart
 import 'package:http/http.dart' as http;
@@ -109,33 +164,19 @@ final client = MockClient((request) async => http.Response(
 final cep = FlutterCep2(client: client);
 ```
 
-A client you pass in stays open after `dispose()`; closing it is up to you.
+## 📚 API reference
 
-## API
+| Member | Description |
+|--------|-------------|
+| `FlutterCep2({http.Client? client, Duration timeout})` | Creates the service. `timeout` defaults to 10 seconds |
+| `Future<Cep> search(String cep, {CepOutputFormat output})` | Looks up one CEP |
+| `Future<List<Cep>> searchAddress(String uf, String city, String street, {CepOutputFormat output})` | Lists the CEPs of a street |
+| `void dispose()` | Closes the HTTP client the service created |
 
-### `FlutterCep2({http.Client? client, Duration timeout = const Duration(seconds: 10)})`
+Full docs on [pub.dev](https://pub.dev/documentation/flutter_cep2/latest/).
 
-Creates the service. `client` replaces the internal HTTP client; `timeout`
-limits each request and aborts it when it runs out (on clients that support
-aborting, such as the default one).
-
-### `Future<Cep> search(String cep, {CepOutputFormat output = CepOutputFormat.json})`
-
-Looks up the CEP and returns its address. Throws `CepException` (see
-[Errors](#errors)). The answer is read as UTF-8, as ViaCEP sends it, even when
-a proxy drops the charset header.
-
-### `Future<List<Cep>> searchAddress(String uf, String city, String street, {CepOutputFormat output = CepOutputFormat.json})`
-
-Lists the CEPs whose street matches `street` in `city`/`uf`. Returns an empty
-list when nothing matches. Throws `CepException` (see [Errors](#errors)).
-
-### `void dispose()`
-
-Closes the HTTP client the service created. A client passed to the constructor
-is left open.
-
-### `Cep`
+<details>
+<summary><b>Fields of <code>Cep</code></b></summary>
 
 | Property      | Type      | Description                            |
 |---------------|-----------|----------------------------------------|
@@ -156,16 +197,64 @@ is left open.
 `Cep` is immutable, compares by value and converts with `Cep.fromJson` and
 `toJson()`.
 
-## About ViaCEP
+</details>
+
+## 📱 Example app
+
+<img src="doc/images/example-app.webp" alt="Example app showing the address of CEP 01310-100" width="300" align="right">
+
+The [`example/`](example) folder has a Flutter app that looks up CEPs in JSON or
+XML, shows every field of the address and copies any of them with one tap.
+
+```bash
+cd example
+flutter run
+```
+
+<br clear="right">
+
+## ❓ FAQ
+
+<details>
+<summary><b>Is ViaCEP free? Are there limits?</b></summary>
 
 ViaCEP is a free public service, not run by this package. It asks clients not
-to send bulk lookups; heavy use may get your IP blocked. Cache results you look
-up often.
+to send bulk lookups, and heavy use may get your IP blocked. Cache the results
+you look up often.
+</details>
 
-## Contributing
+<details>
+<summary><b>Does it work on Flutter web?</b></summary>
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). Bug reports and pull requests are welcome.
+Yes. ViaCEP allows cross-origin requests, so the same code runs in the
+browser. The example app above is the web build.
+</details>
 
-## License
+<details>
+<summary><b>Can I use it without Flutter?</b></summary>
 
-GNU Lesser General Public License v2.1. See [LICENSE](LICENSE).
+Yes. The package is pure Dart and only depends on `http`, `xml` and `meta`, so
+it also works in CLIs and on the server.
+</details>
+
+<details>
+<summary><b>Why are the field names in Portuguese?</b></summary>
+
+They mirror the ViaCEP API (`logradouro`, `bairro`, `localidade`...), so
+anything you read in the ViaCEP docs maps one to one.
+</details>
+
+## 🤝 Contributing
+
+Bug reports, ideas and pull requests are welcome. Read
+[CONTRIBUTING.md](CONTRIBUTING.md) to set up the project and see what CI
+checks, and follow the [Code of Conduct](CODE_OF_CONDUCT.md). Found a security
+issue? Use [SECURITY.md](SECURITY.md), not a public issue.
+
+If this package saves you time, ⭐ the
+[repository](https://github.com/vitoramaral10/flutter_cep2) and 👍 it on
+[pub.dev](https://pub.dev/packages/flutter_cep2): it helps other people find it.
+
+## 📄 License
+
+[GNU Lesser General Public License v2.1](LICENSE).
