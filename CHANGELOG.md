@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-11-05
+
+### Added
+- `Cep.provider`: which `CepProvider` answered, kept by `toJson`/`fromJson`
+  and the cache.
+- `Cep.isCityWide`: true when the CEP has no street, as in towns with a single
+  CEP, so a form knows to ask for it.
+- README: whole-city CEPs and why providers can agree on a wrong record.
+
 ## [1.2.1] - 2026-11-04
 
 ### Changed

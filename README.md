@@ -139,6 +139,30 @@ last error otherwise.
 
 `searchAddress` always uses ViaCEP, the only one with address search.
 
+Every `Cep` says who answered in `provider`, so you can weigh the answer by its
+source (for example, ask the user to confirm one that did not come from
+ViaCEP):
+
+```dart
+final address = await cep.search('01310-100');
+print(address.provider); // CepProvider.viaCep
+```
+
+The providers are not fully independent: BrasilAPI itself asks Correios, ViaCEP
+and others, OpenCEP among them, so two providers can agree because they read
+the same record.
+
+### Whole-city CEPs
+
+Towns with a single CEP, and some districts, have no street: `logradouro` is
+empty in every provider. `isCityWide` tells you so, and a form should then ask
+the user for the street:
+
+```dart
+final address = await cep.search('86990-000'); // Marialva/PR
+if (address.isCityWide) askForStreet();
+```
+
 ### Cache
 
 ```dart
@@ -269,6 +293,8 @@ Full docs on [pub.dev](https://pub.dev/documentation/flutter_cep2/latest/).
 | `siaf`        | `String?` | SIAFI code (`siafi` in the API)        |
 | `latitude`    | `double?` | Latitude (BrasilAPI only)              |
 | `longitude`   | `double?` | Longitude (BrasilAPI only)             |
+| `provider`    | `CepProvider?` | Who answered; null when built by hand |
+| `isCityWide`  | `bool`    | No street: the CEP covers a whole city |
 
 `Cep` is immutable, compares by value and converts with `Cep.fromJson` and
 `toJson()`.
@@ -290,6 +316,16 @@ flutter run
 <br clear="right">
 
 ## ❓ FAQ
+
+<details>
+<summary><b>Two providers agree on a CEP ViaCEP does not know. Who is right?</b></summary>
+
+Often ViaCEP. BrasilAPI may be answering with OpenCEP's record (its answer has
+`"service": "open-cep"`), so the agreement is one source counted twice. CEP
+99999-999, for instance, is in OpenCEP and BrasilAPI as "Avenida das Torres,
+Sarandi/PR", while the real CEPs of that street start with 87112 and 87118. Use
+`Cep.provider` to treat answers from fallback providers with more care.
+</details>
 
 <details>
 <summary><b>Is ViaCEP free? Are there limits?</b></summary>
