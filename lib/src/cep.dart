@@ -1,5 +1,7 @@
 import 'package:meta/meta.dart';
 
+import 'flutter_cep2.dart' show CepProvider;
+
 /// Represents Brazilian ZIP code (CEP) information.
 ///
 /// This class contains all the address information returned by the ViaCEP API.
@@ -51,6 +53,16 @@ class Cep {
   /// Longitude in degrees; filled together with [latitude].
   final double? longitude;
 
+  /// The provider that answered; null for a [Cep] built by hand.
+  ///
+  /// Their databases differ, so an app can weigh the answer by its source.
+  final CepProvider? provider;
+
+  /// Whether this CEP covers a whole city (or district) instead of a street,
+  /// as in towns with a single CEP: [logradouro] is empty for every provider,
+  /// so ask the user for the street.
+  bool get isCityWide => logradouro.isEmpty;
+
   /// Creates a new [Cep] instance.
   const Cep({
     required this.cep,
@@ -68,6 +80,7 @@ class Cep {
     this.siaf,
     this.latitude,
     this.longitude,
+    this.provider,
   });
 
   /// Creates a [Cep] instance from a JSON map.
@@ -88,6 +101,7 @@ class Cep {
       siaf: (json['siafi'] ?? json['siaf']) as String?,
       latitude: (json['latitude'] as num?)?.toDouble(),
       longitude: (json['longitude'] as num?)?.toDouble(),
+      provider: CepProvider.values.asNameMap()[json['provider']],
     );
   }
 
@@ -108,6 +122,7 @@ class Cep {
         'siaf': siaf,
         if (latitude != null) 'latitude': latitude,
         if (longitude != null) 'longitude': longitude,
+        if (provider != null) 'provider': provider!.name,
       };
 
   @override
@@ -134,7 +149,8 @@ class Cep {
         other.ddd == ddd &&
         other.siaf == siaf &&
         other.latitude == latitude &&
-        other.longitude == longitude;
+        other.longitude == longitude &&
+        other.provider == provider;
   }
 
   @override
@@ -155,6 +171,7 @@ class Cep {
       siaf,
       latitude,
       longitude,
+      provider,
     );
   }
 }

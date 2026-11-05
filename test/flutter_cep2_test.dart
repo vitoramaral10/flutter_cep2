@@ -504,6 +504,7 @@ void main() {
         expect(result, hasLength(2));
         expect(result.first.logradouro, 'Rua Domingos José Poli');
         expect(result.first.siaf, '8801');
+        expect(result.first.provider, CepProvider.viaCep);
       });
 
       test('returns every match from XML', () async {
@@ -762,6 +763,42 @@ void main() {
                     ibge: '')
                 .toJson(),
             isNot(contains('latitude')));
+      });
+
+      test('each answer says which provider gave it', () async {
+        for (final (provider, url, body) in [
+          (CepProvider.viaCep, viaCep, viaCepBody),
+          (CepProvider.brasilApi, brasilApi, brasilApiBody),
+          // A provider key in the body does not override ours.
+          (CepProvider.openCep, openCep, '{"provider": "viaCep", "uf": "SP"}'),
+        ]) {
+          final (service, _) = serviceWith(
+            {url: (200, body)},
+            providers: [provider],
+          );
+          expect((await service.search('01310100')).provider, provider);
+        }
+
+        final (service, _) = serviceWith({brasilApi: (200, brasilApiBody)});
+        expect(
+            (await service.search('01310100')).provider, CepProvider.brasilApi);
+      });
+
+      test('provider survives toJson and fromJson', () {
+        const cep = Cep(
+          cep: '01310-100',
+          logradouro: 'Avenida Paulista',
+          bairro: 'Bela Vista',
+          localidade: 'São Paulo',
+          uf: 'SP',
+          ibge: '3550308',
+          provider: CepProvider.openCep,
+        );
+        expect(cep.toJson()['provider'], 'openCep');
+        expect(Cep.fromJson(cep.toJson()), cep);
+        expect(Cep.fromJson({...cep.toJson(), 'provider': 'other'}).provider,
+            isNull);
+        expect(cep, isNot(Cep.fromJson({...cep.toJson(), 'provider': null})));
       });
 
       test('a 404 is notFound for BrasilAPI and OpenCEP', () async {
@@ -1078,6 +1115,15 @@ void main() {
         expect(cep1, equals(cep2));
         expect(cep1.hashCode, equals(cep2.hashCode));
         expect(cep1, isNot(equals(cep3)));
+      });
+
+      test('isCityWide when there is no street', () {
+        expect(
+            Cep.fromJson({'cep': '86990-000', 'localidade': 'Marialva'})
+                .isCityWide,
+            isTrue);
+        expect(Cep.fromJson({'logradouro': 'Avenida Paulista'}).isCityWide,
+            isFalse);
       });
 
       test('should have meaningful toString', () {

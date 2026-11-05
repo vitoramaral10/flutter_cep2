@@ -116,7 +116,7 @@ class FlutterCep2 {
         // ViaCEP has sent `"erro": true` and, today, `"erro": "true"`.
         final erro = data['erro'];
         if (erro == true || erro == 'true') throw _notFound;
-        return _cep(data);
+        return _cep(data, provider);
 
       case CepProvider.brasilApi:
         final data = await _get(
@@ -151,6 +151,7 @@ class FlutterCep2 {
             ibge: ibge,
             latitude: lng == null ? null : lat,
             longitude: lat == null ? null : lng,
+            provider: provider,
           );
         } catch (e) {
           throw _invalidResponse(e);
@@ -162,7 +163,7 @@ class FlutterCep2 {
           CepOutputFormat.json,
           notFoundOn404: true,
         );
-        return _cep(data);
+        return _cep(data, provider);
     }
   }
 
@@ -198,7 +199,7 @@ class FlutterCep2 {
     if (data is! List) {
       throw _invalidResponse('expected a list, got ${data.runtimeType}');
     }
-    final result = [for (final item in data) _cep(item)];
+    final result = [for (final item in data) _cep(item, CepProvider.viaCep)];
     _cache?.put(key, List<Cep>.unmodifiable(result));
     return result;
   }
@@ -257,9 +258,11 @@ class FlutterCep2 {
     }
   }
 
-  static Cep _cep(Object? data) {
+  static Cep _cep(Object? data, CepProvider provider) {
     try {
-      return Cep.fromJson(data as Map<String, dynamic>);
+      // The provider is ours to say; a `provider` key in the body is ignored.
+      return Cep.fromJson(
+          {...data as Map<String, dynamic>, 'provider': provider.name});
     } catch (e) {
       throw _invalidResponse(e);
     }
