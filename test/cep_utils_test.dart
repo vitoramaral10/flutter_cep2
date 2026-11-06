@@ -19,6 +19,15 @@ void main() {
         expect(isValidCep(cep), isFalse, reason: cep);
       }
     });
+
+    test('rejects numbers outside every state range', () {
+      for (final cep in ['00000-000', '00999-999', '78900-000', '78999-999']) {
+        expect(isValidCep(cep), isFalse, reason: cep);
+      }
+      for (final cep in ['01000-000', '78899-999', '79000-000', '99999-999']) {
+        expect(isValidCep(cep), isTrue, reason: cep);
+      }
+    });
   });
 
   group('formatCep', () {
@@ -29,6 +38,7 @@ void main() {
 
     test('is null for an invalid CEP', () {
       expect(formatCep('123'), isNull);
+      expect(formatCep('00000000'), isNull);
     });
   });
 

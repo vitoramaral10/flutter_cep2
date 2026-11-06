@@ -146,7 +146,7 @@ void main() {
 
       test('should throw CepException for non-existent ZIP code', () async {
         // Arrange
-        const nonExistentCep = '00000000';
+        const nonExistentCep = '01999999';
         const errorResponse = {'erro': true};
 
         mockClient.addResponse(
@@ -874,12 +874,48 @@ void main() {
         );
       });
 
+      test('the error lists what each provider said', () async {
+        final (service, _) = serviceWith({
+          viaCep: (200, '{"erro": "true"}'),
+          openCep: (503, ''),
+        });
+        try {
+          await service.search('01310100');
+          fail('no CepException');
+        } on CepException catch (e) {
+          expect(e.type, CepErrorType.notFound);
+          expect(e.providerErrors.keys, CepProvider.values);
+          expect(
+            e.providerErrors.values.map((error) => error.type),
+            [CepErrorType.notFound, CepErrorType.network, CepErrorType.http],
+          );
+          expect(() => e.providerErrors.clear(), throwsUnsupportedError);
+        }
+      });
+
+      test('a single provider throws its own error, with no list', () async {
+        final (service, _) = serviceWith(
+          {openCep: (503, '')},
+          providers: [CepProvider.openCep],
+        );
+        try {
+          await service.search('01310100');
+          fail('no CepException');
+        } on CepException catch (e) {
+          expect(e.type, CepErrorType.http);
+          expect(e.providerErrors, isEmpty);
+        }
+      });
+
       test('an invalid CEP asks nobody', () async {
         final (service, asked) = serviceWith({});
-        expect(
-          await typeOf(() => service.search('123')),
-          CepErrorType.invalidFormat,
-        );
+        for (final cep in ['123', '00000-000', '78900-000']) {
+          expect(
+            await typeOf(() => service.search(cep)),
+            CepErrorType.invalidFormat,
+            reason: cep,
+          );
+        }
         expect(asked, isEmpty);
       });
     });
@@ -894,6 +930,7 @@ void main() {
       (FlutterCep2, List<String>) serviceWith(
         Duration? cacheDuration, {
         int status = 200,
+        int cacheMaxEntries = 1000,
       }) {
         final asked = <String>[];
         final client = testing.MockClient((request) async {
@@ -909,7 +946,11 @@ void main() {
           return utf8Response(body, status);
         });
         return (
-          FlutterCep2(client: client, cacheDuration: cacheDuration),
+          FlutterCep2(
+            client: client,
+            cacheDuration: cacheDuration,
+            cacheMaxEntries: cacheMaxEntries,
+          ),
           asked,
         );
       }
@@ -992,14 +1033,32 @@ void main() {
       test('keeps at most 1000 answers, dropping the oldest', () async {
         final (service, asked) = serviceWith(const Duration(minutes: 1));
         for (var i = 0; i <= 1000; i++) {
-          await service.search(i.toString().padLeft(8, '0'));
+          await service.search('0${1000000 + i}');
         }
         asked.clear();
 
-        await service.search('00001000'); // newest: still cached
-        await service.search('00000000'); // oldest: dropped
+        await service.search('01001000'); // newest: still cached
+        await service.search('01000000'); // oldest: dropped
 
-        expect(asked, ['https://viacep.com.br/ws/00000000/json']);
+        expect(asked, ['https://viacep.com.br/ws/01000000/json']);
+      });
+
+      test('cacheMaxEntries sets the size', () async {
+        final (service, asked) =
+            serviceWith(const Duration(minutes: 1), cacheMaxEntries: 2);
+        for (final cep in ['01000001', '01000002', '01000003']) {
+          await service.search(cep);
+        }
+        asked.clear();
+
+        await service.search('01000003'); // kept
+        await service.search('01000001'); // dropped by the third
+
+        expect(asked, ['https://viacep.com.br/ws/01000001/json']);
+      });
+
+      test('cacheMaxEntries below 1 is rejected', () {
+        expect(() => FlutterCep2(cacheMaxEntries: 0), throwsArgumentError);
       });
     });
 

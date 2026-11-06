@@ -1,6 +1,9 @@
+import 'flutter_cep2.dart' show CepProvider;
+
 /// Why a ZIP code lookup failed.
 enum CepErrorType {
-  /// The input does not have 8 digits; no request was sent.
+  /// The input does not have 8 digits or is outside every Correios range;
+  /// no request was sent.
   invalidFormat,
 
   /// ViaCEP has no address for the ZIP code.
@@ -30,8 +33,16 @@ class CepException implements Exception {
   /// Why the lookup failed.
   final CepErrorType type;
 
+  /// The error of each provider asked, in order, when `FlutterCep2.search`
+  /// tried more than one and all of them failed; empty otherwise.
+  final Map<CepProvider, CepException> providerErrors;
+
   /// Creates a new [CepException] with the given [message] and [type].
-  const CepException(this.message, {this.type = CepErrorType.unknown});
+  const CepException(
+    this.message, {
+    this.type = CepErrorType.unknown,
+    this.providerErrors = const {},
+  });
 
   @override
   String toString() => 'CepException: $message';

@@ -1,15 +1,17 @@
 final _nonDigits = RegExp(r'[^0-9]');
 
-/// The digits of [cep], or null when there are not exactly 8 of them.
+/// The digits of [cep], or null when there are not exactly 8 of them or they
+/// fall outside every Correios range (see [isValidCep]).
 String? cepDigits(String cep) {
   final digits = cep.replaceAll(_nonDigits, '');
-  return digits.length == 8 ? digits : null;
+  return digits.length == 8 && _ufOf(digits) != null ? digits : null;
 }
 
 /// Whether [cep] has exactly 8 digits once punctuation is removed, as in
-/// `01310-100`, `01310100` or `01.310-100`.
+/// `01310-100`, `01310100` or `01.310-100`, inside a Correios state range.
 ///
-/// This only checks the format, without any request: a valid CEP may still
+/// Numbers no state uses, such as `00000-000` or `78900-000`, are invalid.
+/// This only checks the number, without any request: a valid CEP may still
 /// not exist.
 bool isValidCep(String cep) => cepDigits(cep) != null;
 
@@ -29,7 +31,7 @@ String? formatCep(String cep) {
 /// The state and region a CEP belongs to, by the Correios number ranges,
 /// without any request.
 ///
-/// Returns null when [cep] is not valid or falls outside every range. A few
+/// Returns null when [cep] is not valid (see [isValidCep]). A few
 /// CEPs (some large-volume receivers) do not follow the ranges, so use
 /// `FlutterCep2.search` when the answer must be exact.
 ///
@@ -39,12 +41,16 @@ String? formatCep(String cep) {
 ({String uf, String estado, String regiao})? cepState(String cep) {
   final digits = cepDigits(cep);
   if (digits == null) return null;
+  final uf = _ufOf(digits)!;
+  final (estado, regiao) = _states[uf]!;
+  return (uf: uf, estado: estado, regiao: regiao);
+}
+
+/// The state whose range holds the 8 [digits], or null.
+String? _ufOf(String digits) {
   final prefix = int.parse(digits.substring(0, 5));
   for (final (first, last, uf) in _ranges) {
-    if (prefix >= first && prefix <= last) {
-      final (estado, regiao) = _states[uf]!;
-      return (uf: uf, estado: estado, regiao: regiao);
-    }
+    if (prefix >= first && prefix <= last) return uf;
   }
   return null;
 }

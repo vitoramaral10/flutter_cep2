@@ -101,7 +101,8 @@ class CepLookupWidget extends StatefulWidget {
 }
 
 class _CepLookupWidgetState extends State<CepLookupWidget> {
-  final _cepService = FlutterCep2();
+  // ViaCEP first; BrasilAPI and OpenCEP answer when it fails.
+  final _cepService = FlutterCep2(providers: CepProvider.values);
   final _controller = TextEditingController();
 
   Cep? _result;
@@ -116,6 +117,7 @@ class _CepLookupWidgetState extends State<CepLookupWidget> {
     '30112-000', // Belo Horizonte - MG
     '80010-000', // Curitiba - PR
     '60160-230', // Fortaleza - CE
+    '86990-000', // Marialva - PR: one CEP for the whole city
   ];
 
   @override
@@ -153,7 +155,11 @@ class _CepLookupWidgetState extends State<CepLookupWidget> {
     } on CepException catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = e.message;
+        _error = [
+          e.message,
+          for (final MapEntry(:key, :value) in e.providerErrors.entries)
+            '${_providerName(key)}: ${value.message}',
+        ].join('\n');
         _isLoading = false;
       });
     } catch (e) {
@@ -309,6 +315,12 @@ class _CepLookupWidgetState extends State<CepLookupWidget> {
   }
 }
 
+String _providerName(CepProvider provider) => switch (provider) {
+  CepProvider.viaCep => 'ViaCEP',
+  CepProvider.brasilApi => 'BrasilAPI',
+  CepProvider.openCep => 'OpenCEP',
+};
+
 class _ErrorDisplay extends StatelessWidget {
   const _ErrorDisplay({required this.error});
 
@@ -412,7 +424,9 @@ class _ResultDisplay extends StatelessWidget {
                 _AddressRow(
                   icon: Icons.location_on,
                   label: 'Street',
-                  value: result.logradouro,
+                  value: result.isCityWide
+                      ? 'None: this CEP covers the whole city'
+                      : result.logradouro,
                   onCopy: onCopy,
                 ),
                 if (result.complemento?.isNotEmpty == true)
@@ -474,6 +488,13 @@ class _ResultDisplay extends StatelessWidget {
                     icon: Icons.account_balance,
                     label: 'SIAFI Code',
                     value: result.siaf!,
+                    onCopy: onCopy,
+                  ),
+                if (result.provider case final provider?)
+                  _AddressRow(
+                    icon: Icons.cloud_done,
+                    label: 'Source',
+                    value: _providerName(provider),
                     onCopy: onCopy,
                   ),
               ],
@@ -575,7 +596,6 @@ class _FeaturesList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
     return Card(
       elevation: 4,
       child: Padding(
