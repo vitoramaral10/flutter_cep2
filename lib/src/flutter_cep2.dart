@@ -49,17 +49,25 @@ class FlutterCep2 {
   ///
   /// With [cacheDuration], successful answers of [search] and [searchAddress]
   /// are kept in memory for that long, so repeated lookups skip the network.
+  /// The cache holds at most [cacheMaxEntries] answers (1000 by default),
+  /// dropping the oldest.
   FlutterCep2({
     http.Client? client,
     this.timeout = const Duration(seconds: 10),
     List<CepProvider> providers = const [CepProvider.viaCep],
     Duration? cacheDuration,
+    int cacheMaxEntries = 1000,
   })  : _client = client ?? http.Client(),
         _ownsClient = client == null,
         providers = providers.isEmpty
             ? throw ArgumentError.value(providers, 'providers', 'is empty')
             : List.unmodifiable(providers),
-        _cache = cacheDuration == null ? null : _Cache(cacheDuration);
+        _cache = cacheMaxEntries < 1
+            ? throw ArgumentError.value(
+                cacheMaxEntries, 'cacheMaxEntries', 'must be at least 1')
+            : cacheDuration == null
+                ? null
+                : _Cache(cacheDuration, cacheMaxEntries);
 
   /// Searches for ZIP code information.
   ///
@@ -69,7 +77,8 @@ class FlutterCep2 {
   ///
   /// [providers] are tried in order. When all of them fail, the error is
   /// [CepErrorType.notFound] if any provider said the CEP does not exist, and
-  /// otherwise the last provider's error.
+  /// otherwise the last provider's error. With more than one provider, its
+  /// [CepException.providerErrors] holds what each of them said.
   ///
   /// Throws [CepException]; its [CepException.type] says why.
   Future<Cep> search(
@@ -87,19 +96,26 @@ class FlutterCep2 {
     final key = 'cep:$digits';
     if (_cache?.get(key) case final Cep hit) return hit;
 
-    CepException? notFound;
-    late CepException last;
+    final errors = <CepProvider, CepException>{};
     for (final provider in providers) {
       try {
         final result = await _lookup(provider, digits, output);
         _cache?.put(key, result);
         return result;
       } on CepException catch (e) {
-        if (e.type == CepErrorType.notFound) notFound ??= e;
-        last = e;
+        errors[provider] = e;
       }
     }
-    throw notFound ?? last;
+    final chosen = errors.values.firstWhere(
+      (e) => e.type == CepErrorType.notFound,
+      orElse: () => errors.values.last,
+    );
+    if (errors.length == 1) throw chosen;
+    throw CepException(
+      chosen.message,
+      type: chosen.type,
+      providerErrors: Map.unmodifiable(errors),
+    );
   }
 
   Future<Cep> _lookup(
@@ -337,14 +353,15 @@ enum CepProvider {
 
 /// In-memory store of successful answers that expire after [duration].
 class _Cache {
-  _Cache(this.duration);
+  _Cache(this.duration, this.maxEntries);
 
   /// How long an answer stays valid.
   final Duration duration;
 
-  // shortcut: drops the oldest entry past this size instead of true LRU;
-  // make it configurable if someone needs a bigger cache.
-  static const _maxEntries = 1000;
+  // shortcut: drops the oldest entry, not the least recently used; switch to
+  // LRU if hit rates on big caches matter.
+  /// How many answers are kept at most.
+  final int maxEntries;
 
   // A map literal is a LinkedHashMap: keys keep insertion order.
   final _entries = <String, (Object, DateTime)>{};
@@ -361,7 +378,7 @@ class _Cache {
 
   void put(String key, Object value) {
     _entries.remove(key);
-    if (_entries.length >= _maxEntries) _entries.remove(_entries.keys.first);
+    if (_entries.length >= maxEntries) _entries.remove(_entries.keys.first);
     _entries[key] = (value, DateTime.now().add(duration));
   }
 }

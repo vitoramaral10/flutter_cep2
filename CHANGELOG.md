@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-11-06
+
+### Added
+- `CepException.providerErrors`: when `search` tried several providers and all
+  failed, what each of them answered.
+- `cacheMaxEntries`: how many answers the cache keeps (1000 by default).
+- The example app falls back to BrasilAPI and OpenCEP, shows which provider
+  answered, flags whole-city CEPs and lists each provider's error.
+
+### Changed
+- `isValidCep`, `formatCep` and `search` reject numbers outside every Correios
+  state range, such as `00000-000` and `78900-000`, without a request. Checked
+  against 995,091 CEPs of a 2018 base: none falls outside.
+
 ## [1.3.0] - 2026-11-05
 
 ### Added

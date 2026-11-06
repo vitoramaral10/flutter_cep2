@@ -171,7 +171,8 @@ final cep = FlutterCep2(cacheDuration: const Duration(hours: 1));
 
 Successful answers of `search` and `searchAddress` are kept in memory for that
 long, so a repeated lookup skips the network (and ViaCEP's rate limit). Errors
-are never cached, and the cache holds at most 1000 answers, dropping the oldest.
+are never cached, and the cache holds at most `cacheMaxEntries` answers (1000
+by default), dropping the oldest.
 It is off by default.
 
 ### Coordinates
@@ -193,7 +194,8 @@ or BrasilAPI does not know the point.
 No request, no `FlutterCep2` needed:
 
 ```dart
-isValidCep('01310-100');  // true: 8 digits (says nothing about existing)
+isValidCep('01310-100');  // true: 8 digits in a state range (says nothing about existing)
+isValidCep('00000-000');  // false: no state uses this number
 formatCep('01310100');    // '01310-100'; null when invalid
 cepState('01310-100');    // (uf: 'SP', estado: 'São Paulo', regiao: 'Sudeste')
 ```
@@ -235,12 +237,23 @@ try {
 
 | `type`            | When                                                   |
 |-------------------|--------------------------------------------------------|
-| `invalidFormat`   | The CEP doesn't have 8 digits, or the address is too short. Nothing is sent |
+| `invalidFormat`   | The CEP doesn't have 8 digits or is outside every state range, or the address is too short. Nothing is sent |
 | `notFound`        | ViaCEP has no address for the CEP                      |
 | `http`            | ViaCEP answered with a status other than 200           |
 | `timeout`         | No answer within `timeout`                             |
 | `network`         | The request could not be sent (offline, DNS, TLS...)   |
 | `invalidResponse` | The body could not be read as a ViaCEP answer          |
+
+With more than one provider, `providerErrors` says what each of them answered
+when all of them failed:
+
+```dart
+on CepException catch (e) {
+  for (final MapEntry(:key, :value) in e.providerErrors.entries) {
+    log('$key: ${value.type}'); // CepProvider.viaCep: CepErrorType.timeout ...
+  }
+}
+```
 
 ## 🧪 Testing your code
 
@@ -263,11 +276,11 @@ final cep = FlutterCep2(client: client);
 
 | Member | Description |
 |--------|-------------|
-| `FlutterCep2({http.Client? client, Duration timeout, List<CepProvider> providers, Duration? cacheDuration})` | Creates the service. `timeout` defaults to 10 seconds, `providers` to ViaCEP only, and the cache is off |
+| `FlutterCep2({http.Client? client, Duration timeout, List<CepProvider> providers, Duration? cacheDuration, int cacheMaxEntries})` | Creates the service. `timeout` defaults to 10 seconds, `providers` to ViaCEP only, and the cache is off (1000 answers when on) |
 | `Future<Cep> search(String cep, {CepOutputFormat output})` | Looks up one CEP, falling back through `providers` |
 | `Future<List<Cep>> searchAddress(String uf, String city, String street, {CepOutputFormat output})` | Lists the CEPs of a street |
 | `void dispose()` | Closes the HTTP client the service created |
-| `bool isValidCep(String cep)` | Whether the CEP has 8 digits, offline |
+| `bool isValidCep(String cep)` | Whether the CEP has 8 digits inside a state range, offline |
 | `String? formatCep(String cep)` | `XXXXX-XXX`, or null when invalid |
 | `cepState(String cep)` | `(uf, estado, regiao)` from the CEP ranges, or null |
 
